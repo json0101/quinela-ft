@@ -3,6 +3,7 @@ export interface EquipoDto {
   nombre: string;
   confederacion: string;
   anfitrion: boolean;
+  urlBandera?: string;
   active: boolean;
   createdAt?: string;
   createdBy?: string;

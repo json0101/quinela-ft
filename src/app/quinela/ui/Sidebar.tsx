@@ -21,6 +21,12 @@ const NAV = [
   {
     titulo: "Mundial 2026",
     items: [
+      { label: "Grupos", href: "/quinela/grupos" },
+    ],
+  },
+  {
+    titulo: "Administración",
+    items: [
       { label: "Grupos", href: "/quinela/master/grupos" },
       { label: "Equipos", href: "/quinela/master/equipos" },
       { label: "Tipos de Partido", href: "/quinela/master/tipos-partido" },

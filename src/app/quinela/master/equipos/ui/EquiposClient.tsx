@@ -31,6 +31,7 @@ interface FormValues {
   nombre: string;
   confederacion: string;
   anfitrion: boolean;
+  urlBandera: string;
   active: boolean;
 }
 
@@ -43,19 +44,22 @@ export default function EquiposClient({ initial }: { initial: EquipoDto[] }) {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ msg: string; sev: "success" | "error" } | null>(null);
 
-  const { register, handleSubmit, reset, control, formState: { errors } } = useForm<FormValues>({
-    defaultValues: { nombre: "", confederacion: "CONMEBOL", anfitrion: false, active: true },
+  const { register, handleSubmit, reset, control, watch, formState: { errors } } = useForm<FormValues>({
+    defaultValues: { nombre: "", confederacion: "CONMEBOL", anfitrion: false, urlBandera: "", active: true },
   });
+
+  // Valor actual del campo bandera para la vista previa en vivo dentro del diálogo.
+  const urlBanderaActual = watch("urlBandera");
 
   const openNew = () => {
     setEditing(null);
-    reset({ nombre: "", confederacion: "CONMEBOL", anfitrion: false, active: true });
+    reset({ nombre: "", confederacion: "CONMEBOL", anfitrion: false, urlBandera: "", active: true });
     setOpen(true);
   };
 
   const openEdit = (e: EquipoDto) => {
     setEditing(e);
-    reset({ nombre: e.nombre, confederacion: e.confederacion, anfitrion: e.anfitrion, active: e.active });
+    reset({ nombre: e.nombre, confederacion: e.confederacion, anfitrion: e.anfitrion, urlBandera: e.urlBandera ?? "", active: e.active });
     setOpen(true);
   };
 
@@ -111,6 +115,7 @@ export default function EquiposClient({ initial }: { initial: EquipoDto[] }) {
             <TableRow>
               <TableCell>Acciones</TableCell>
               <TableCell>Id</TableCell>
+              <TableCell>Bandera</TableCell>
               <TableCell>Nombre</TableCell>
               <TableCell>Confederación</TableCell>
               <TableCell>Anfitrión</TableCell>
@@ -125,6 +130,18 @@ export default function EquiposClient({ initial }: { initial: EquipoDto[] }) {
                   <Button size="small" color="error" onClick={() => onDelete(e)}>Eliminar</Button>
                 </TableCell>
                 <TableCell>{e.id}</TableCell>
+                <TableCell>
+                  {e.urlBandera ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={`/img/flags/${e.urlBandera}`}
+                      alt={e.nombre}
+                      width={28}
+                      height={20}
+                      style={{ objectFit: "cover", border: "1px solid #ddd" }}
+                    />
+                  ) : null}
+                </TableCell>
                 <TableCell>{e.nombre}</TableCell>
                 <TableCell>{e.confederacion}</TableCell>
                 <TableCell>{e.anfitrion ? "Sí" : "No"}</TableCell>
@@ -134,7 +151,7 @@ export default function EquiposClient({ initial }: { initial: EquipoDto[] }) {
               </TableRow>
             ))}
             {initial.length === 0 && (
-              <TableRow><TableCell colSpan={6} align="center">No hay registros.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} align="center">No hay registros.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
@@ -164,6 +181,25 @@ export default function EquiposClient({ initial }: { initial: EquipoDto[] }) {
                   </TextField>
                 )}
               />
+              <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
+                <TextField
+                  label="Bandera (archivo)"
+                  placeholder="mx.svg"
+                  fullWidth
+                  helperText="Nombre del archivo en /public/img/flags (ej. mx.svg)"
+                  {...register("urlBandera", { maxLength: 60 })}
+                />
+                {urlBanderaActual ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={`/img/flags/${urlBanderaActual}`}
+                    alt="bandera"
+                    width={48}
+                    height={34}
+                    style={{ objectFit: "cover", border: "1px solid #ddd", borderRadius: 2, flexShrink: 0 }}
+                  />
+                ) : null}
+              </Stack>
               <Controller
                 name="anfitrion"
                 control={control}
