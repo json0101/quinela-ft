@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Salida autocontenida para una imagen Docker ligera.
+  output: "standalone",
 };
 
 export default nextConfig;
