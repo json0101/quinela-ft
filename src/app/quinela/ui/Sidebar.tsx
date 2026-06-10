@@ -16,30 +16,49 @@ import Divider from "@mui/material/Divider";
 
 const DRAWER_WIDTH = 240;
 
-// Sección "Mundial 2026" con los masters (coincide con las screens precargadas en UserApp).
-const NAV = [
-  {
-    titulo: "Mundial 2026",
-    items: [
-      { label: "Grupos", href: "/quinela/grupos" },
-      { label: "Calendario", href: "/quinela/calendario" },
-      { label: "Ranking", href: "/quinela/ranking" }
-    ],
-  },
-  {
-    titulo: "Administración",
-    items: [
-      { label: "Grupos", href: "/quinela/master/grupos" },
-      { label: "Equipos", href: "/quinela/master/equipos" },
-      { label: "Tipos de Partido", href: "/quinela/master/tipos-partido" },
-    ],
-  },
-];
+// Forma de cada nodo del menú que devuelve el backend (GET /Menu), segun los
+// permisos del usuario en UserApp. La respuesta llega como lista plana; la
+// jerarquía se arma con screenFatherId.
+export type MenuItem = {
+  screenId: number;
+  name: string;
+  route: string;
+  isFather: boolean;
+  screenFatherId: number | null;
+  order: number;
+  children?: MenuItem[];
+};
 
-export default function Sidebar() {
+// Convierte la lista plana en árbol (padre -> hijos), ordenando por `order`.
+function buildTree(items: MenuItem[]): MenuItem[] {
+  const byId = new Map<number, MenuItem>();
+  items.forEach((i) => byId.set(i.screenId, { ...i, children: [] }));
+
+  const roots: MenuItem[] = [];
+  byId.forEach((node) => {
+    const parent =
+      node.screenFatherId != null ? byId.get(node.screenFatherId) : undefined;
+    if (parent) parent.children!.push(node);
+    else roots.push(node);
+  });
+
+  const sortRec = (arr: MenuItem[]) => {
+    arr.sort((a, b) => a.order - b.order);
+    arr.forEach((n) => n.children && sortRec(n.children));
+  };
+  sortRec(roots);
+  return roots;
+}
+
+// Una ruta es navegable si no es el placeholder "#".
+const isNavigable = (route: string) => !!route && route !== "#";
+
+export default function Sidebar({ menu }: { menu: MenuItem[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const [loggingOut, setLoggingOut] = useState(false);
+
+  const tree = buildTree(menu ?? []);
 
   const logout = async () => {
     setLoggingOut(true);
@@ -47,6 +66,17 @@ export default function Sidebar() {
     router.push("/login");
     router.refresh();
   };
+
+  const renderLink = (item: MenuItem) => (
+    <ListItemButton
+      key={item.screenId}
+      component={Link}
+      href={item.route}
+      selected={pathname === item.route}
+    >
+      <ListItemText primary={item.name} />
+    </ListItemButton>
+  );
 
   return (
     <Drawer
@@ -64,23 +94,31 @@ export default function Sidebar() {
       </Toolbar>
       <Divider />
       <Box sx={{ overflow: "auto", flexGrow: 1 }}>
-        {NAV.map((sec) => (
-          <List
-            key={sec.titulo}
-            subheader={<ListSubheader component="div">{sec.titulo}</ListSubheader>}
-          >
-            {sec.items.map((item) => (
-              <ListItemButton
-                key={item.href}
-                component={Link}
-                href={item.href}
-                selected={pathname === item.href}
+        {tree.length === 0 && (
+          <Typography variant="body2" sx={{ p: 2, color: "text.secondary" }}>
+            Sin opciones disponibles.
+          </Typography>
+        )}
+        {tree.map((node) => {
+          const children = node.children ?? [];
+          // Nodo con hijos (o marcado como padre): cabecera + hijos navegables.
+          if (children.length > 0 || node.isFather) {
+            return (
+              <List
+                key={node.screenId}
+                subheader={
+                  <ListSubheader component="div">{node.name}</ListSubheader>
+                }
               >
-                <ListItemText primary={item.label} />
-              </ListItemButton>
-            ))}
-          </List>
-        ))}
+                {children.filter((c) => isNavigable(c.route)).map(renderLink)}
+              </List>
+            );
+          }
+          // Nodo hoja navegable a nivel raíz.
+          return isNavigable(node.route) ? (
+            <List key={node.screenId}>{renderLink(node)}</List>
+          ) : null;
+        })}
       </Box>
       <Divider />
       <Box sx={{ p: 2 }}>
