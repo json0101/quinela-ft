@@ -41,7 +41,7 @@ function estadoChip(estado: string): { label: string; color: "default" | "info" 
     case "T":
       return { label: "Finalizado", color: "default" };
     default:
-      return { label: "Previa", color: "info" };
+      return { label: "No iniciado", color: "info" };
   }
 }
 

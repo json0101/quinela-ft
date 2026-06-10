@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#E4002B"/>
+  <!-- Contenido dentro de la zona segura (centro ~70%) para íconos maskable. -->
+  <circle cx="256" cy="236" r="110" fill="#ffffff"/>
+  <g fill="#0A3D91">
+    <polygon points="256,192 278,208 270,236 242,236 234,208"/>
+    <circle cx="256" cy="296" r="12"/>
+    <circle cx="208" cy="252" r="10"/>
+    <circle cx="304" cy="252" r="10"/>
+  </g>
+  <text x="256" y="372" font-family="Arial, Helvetica, sans-serif" font-size="56" font-weight="700"
+        fill="#ffffff" text-anchor="middle">Q26</text>
+</svg>

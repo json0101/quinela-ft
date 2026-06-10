@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Roboto } from "next/font/google";
 import Providers from "./providers";
+import ServiceWorkerRegister from "./ServiceWorkerRegister";
 import "./globals.css";
 
 const roboto = Roboto({
@@ -13,6 +14,15 @@ const roboto = Roboto({
 export const metadata: Metadata = {
   title: "Quiniela",
   description: "Plataforma Quiniela",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Quiniela",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#E4002B",
 };
 
 export default function RootLayout({
@@ -24,6 +34,7 @@ export default function RootLayout({
     <html lang="es" className={roboto.variable}>
       <body>
         <Providers>{children}</Providers>
+        <ServiceWorkerRegister />
       </body>
     </html>
   );

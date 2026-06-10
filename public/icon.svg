@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#E4002B"/>
+  <circle cx="256" cy="256" r="150" fill="#ffffff"/>
+  <g fill="#0A3D91">
+    <polygon points="256,196 286,218 274,254 238,254 226,218"/>
+    <circle cx="256" cy="330" r="16"/>
+    <circle cx="190" cy="270" r="14"/>
+    <circle cx="322" cy="270" r="14"/>
+  </g>
+  <text x="256" y="430" font-family="Arial, Helvetica, sans-serif" font-size="84" font-weight="700"
+        fill="#ffffff" text-anchor="middle">Q26</text>
+</svg>

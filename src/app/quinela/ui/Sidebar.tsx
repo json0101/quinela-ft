@@ -22,7 +22,8 @@ const NAV = [
     titulo: "Mundial 2026",
     items: [
       { label: "Grupos", href: "/quinela/grupos" },
-      { label: "Calendario", href: "/quinela/calendario" }
+      { label: "Calendario", href: "/quinela/calendario" },
+      { label: "Ranking", href: "/quinela/ranking" }
     ],
   },
   {
