@@ -25,6 +25,14 @@ export default function LoginPage() {
       <Container maxWidth="xs">
         <Stack spacing={3} sx={{ alignItems: "center" }}>
           <Stack spacing={0.5} sx={{ alignItems: "center", textAlign: "center" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/trofeo-mundial.svg"
+              alt="Trofeo del Mundial"
+              width={84}
+              height={126}
+              style={{ display: "block", marginBottom: 8 }}
+            />
             <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
               Quiniela
             </Typography>

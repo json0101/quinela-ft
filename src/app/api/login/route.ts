@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     response.cookies.set(config_local.sessionCookieName, token, {
       httpOnly: true,
       sameSite: "lax",
-      // secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "production",
       path: "/",
       maxAge: 60 * 60 * 8, // 8 horas (igual que la expiración del JWT)
     });

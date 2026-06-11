@@ -6,18 +6,14 @@ import { useForm } from "react-hook-form";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Checkbox from "@mui/material/Checkbox";
 import CircularProgress from "@mui/material/CircularProgress";
-import FormControlLabel from "@mui/material/FormControlLabel";
 import InputAdornment from "@mui/material/InputAdornment";
-import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 
 type LoginValues = {
   email: string;
   password: string;
-  remember: boolean;
 };
 
 // Expresión razonable para validar el formato del correo en el cliente.
@@ -33,7 +29,7 @@ export default function LoginForm() {
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<LoginValues>({
-    defaultValues: { email: "", password: "", remember: false },
+    defaultValues: { email: "", password: ""},
     mode: "onTouched",
   });
 
@@ -123,19 +119,6 @@ export default function LoginForm() {
             },
           })}
         />
-
-        <Stack
-          direction="row"
-          sx={{ alignItems: "center", justifyContent: "space-between" }}
-        >
-          <FormControlLabel
-            control={<Checkbox {...register("remember")} />}
-            label="Recordarme"
-          />
-          <Link href="#" variant="body2" underline="hover">
-            ¿Olvidaste tu contraseña?
-          </Link>
-        </Stack>
 
         <Button
           type="submit"
