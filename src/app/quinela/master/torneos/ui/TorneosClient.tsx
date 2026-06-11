@@ -20,92 +20,72 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import TextField from "@mui/material/TextField";
-import MenuItem from "@mui/material/MenuItem";
 import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
-import { GrupoDto, TorneoOption } from "../dtos";
+import { TorneoDto } from "../dtos";
 
 interface FormValues {
-  nombre: string;
-  torneoId: number;
+  descripcion: string;
   active: boolean;
 }
 
-export default function GruposClient({ initial, torneos }: { initial: GrupoDto[]; torneos: TorneoOption[] }) {
+export default function TorneosClient({ initial }: { initial: TorneoDto[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<GrupoDto | null>(null);
+  const [editing, setEditing] = useState<TorneoDto | null>(null);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ msg: string; sev: "success" | "error" } | null>(null);
 
-  const defaultTorneo = torneos[0]?.id ?? 0;
   const { register, handleSubmit, reset, control, formState: { errors } } = useForm<FormValues>({
-    defaultValues: { nombre: "", torneoId: defaultTorneo, active: true },
+    defaultValues: { descripcion: "", active: true },
   });
 
-  const openNew = () => {
-    setEditing(null);
-    reset({ nombre: "", torneoId: defaultTorneo, active: true });
-    setOpen(true);
-  };
-
-  const openEdit = (g: GrupoDto) => {
-    setEditing(g);
-    reset({ nombre: g.nombre, torneoId: g.torneoId, active: g.active });
-    setOpen(true);
-  };
+  const openNew = () => { setEditing(null); reset({ descripcion: "", active: true }); setOpen(true); };
+  const openEdit = (t: TorneoDto) => { setEditing(t); reset({ descripcion: t.descripcion, active: t.active }); setOpen(true); };
 
   const onSubmit = async (values: FormValues) => {
     setSaving(true);
     try {
-      const url = editing ? `/quinela/master/grupos/api/${editing.id}` : "/quinela/master/grupos/api";
+      const url = editing ? `/quinela/master/torneos/api/${editing.id}` : "/quinela/master/torneos/api";
       const method = editing ? "PUT" : "POST";
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...values, torneoId: Number(values.torneoId) }),
-      });
+      const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(values) });
       if (!res.ok) {
         const p = (await res.json().catch(() => ({}))) as { message?: string };
         throw new Error(p.message ?? "Error al guardar");
       }
-      setToast({ msg: editing ? "Grupo actualizado" : "Grupo creado", sev: "success" });
+      setToast({ msg: editing ? "Torneo actualizado" : "Torneo creado", sev: "success" });
       setOpen(false);
       router.refresh();
-    } catch (e) {
-      setToast({ msg: e instanceof Error ? e.message : "Error", sev: "error" });
+    } catch (err) {
+      setToast({ msg: err instanceof Error ? err.message : "Error", sev: "error" });
     } finally {
       setSaving(false);
     }
   };
 
-  const onDelete = async (g: GrupoDto) => {
-    if (!confirm(`¿Eliminar el grupo "${g.nombre}"?`)) return;
+  const onDelete = async (t: TorneoDto) => {
+    if (!confirm(`¿Eliminar el torneo "${t.descripcion}"?`)) return;
     try {
-      const res = await fetch(`/quinela/master/grupos/api/${g.id}`, { method: "DELETE" });
+      const res = await fetch(`/quinela/master/torneos/api/${t.id}`, { method: "DELETE" });
       if (!res.ok) {
         const p = (await res.json().catch(() => ({}))) as { message?: string };
         throw new Error(p.message ?? "Error al eliminar");
       }
-      setToast({ msg: "Grupo eliminado", sev: "success" });
+      setToast({ msg: "Torneo eliminado", sev: "success" });
       router.refresh();
-    } catch (e) {
-      setToast({ msg: e instanceof Error ? e.message : "Error", sev: "error" });
+    } catch (err) {
+      setToast({ msg: err instanceof Error ? err.message : "Error", sev: "error" });
     }
   };
 
   return (
     <Box>
       <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700 }}>Grupos</Typography>
-        <Button variant="contained" onClick={openNew} disabled={torneos.length === 0}>Nuevo</Button>
+        <Typography variant="h4" sx={{ fontWeight: 700 }}>Torneos</Typography>
+        <Button variant="contained" onClick={openNew}>Nuevo</Button>
       </Stack>
-
-      {torneos.length === 0 && (
-        <Alert severity="info" sx={{ mb: 2 }}>Primero crea un torneo para poder registrar grupos.</Alert>
-      )}
 
       <TableContainer component={Paper}>
         <Table size="small">
@@ -113,28 +93,26 @@ export default function GruposClient({ initial, torneos }: { initial: GrupoDto[]
             <TableRow>
               <TableCell>Acciones</TableCell>
               <TableCell>Id</TableCell>
-              <TableCell>Nombre</TableCell>
-              <TableCell>Torneo</TableCell>
+              <TableCell>Descripción</TableCell>
               <TableCell>Activo</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {initial.map((g) => (
-              <TableRow key={g.id} hover>
+            {initial.map((t) => (
+              <TableRow key={t.id} hover>
                 <TableCell>
-                  <Button size="small" onClick={() => openEdit(g)}>Editar</Button>
-                  <Button size="small" color="error" onClick={() => onDelete(g)}>Eliminar</Button>
+                  <Button size="small" onClick={() => openEdit(t)}>Editar</Button>
+                  <Button size="small" color="error" onClick={() => onDelete(t)}>Eliminar</Button>
                 </TableCell>
-                <TableCell>{g.id}</TableCell>
-                <TableCell>{g.nombre}</TableCell>
-                <TableCell>{g.torneo}</TableCell>
+                <TableCell>{t.id}</TableCell>
+                <TableCell>{t.descripcion}</TableCell>
                 <TableCell>
-                  <Chip size="small" label={g.active ? "Activo" : "Inactivo"} color={g.active ? "success" : "default"} />
+                  <Chip size="small" label={t.active ? "Activo" : "Inactivo"} color={t.active ? "success" : "default"} />
                 </TableCell>
               </TableRow>
             ))}
             {initial.length === 0 && (
-              <TableRow><TableCell colSpan={5} align="center">No hay registros.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={4} align="center">No hay registros.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
@@ -142,27 +120,15 @@ export default function GruposClient({ initial, torneos }: { initial: GrupoDto[]
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="xs">
         <Box component="form" onSubmit={handleSubmit(onSubmit)}>
-          <DialogTitle>{editing ? "Editar grupo" : "Nuevo grupo"}</DialogTitle>
+          <DialogTitle>{editing ? "Editar torneo" : "Nuevo torneo"}</DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ mt: 1 }}>
               <TextField
-                label="Nombre"
+                label="Descripción"
                 fullWidth
-                error={Boolean(errors.nombre)}
-                helperText={errors.nombre ? "Requerido (máx. 5)" : " "}
-                {...register("nombre", { required: true, maxLength: 5 })}
-              />
-              <Controller
-                name="torneoId"
-                control={control}
-                rules={{ required: true, min: 1 }}
-                render={({ field }) => (
-                  <TextField select label="Torneo" fullWidth {...field}>
-                    {torneos.map((t) => (
-                      <MenuItem key={t.id} value={t.id}>{t.descripcion}</MenuItem>
-                    ))}
-                  </TextField>
-                )}
+                error={Boolean(errors.descripcion)}
+                helperText={errors.descripcion ? "Requerido (máx. 200)" : " "}
+                {...register("descripcion", { required: true, maxLength: 200 })}
               />
               <Controller
                 name="active"

@@ -1,6 +1,7 @@
-export interface GrupoDto {
+export interface QuinielaDto {
   id: number;
   nombre: string;
+  reglas: string;
   torneoId: number;
   torneo: string;
   active: boolean;

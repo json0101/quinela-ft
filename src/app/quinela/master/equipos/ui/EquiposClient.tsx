@@ -25,27 +25,29 @@ import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
-import { EquipoDto } from "../dtos";
+import { EquipoDto, TorneoOption } from "../dtos";
 
 interface FormValues {
   nombre: string;
   confederacion: string;
   anfitrion: boolean;
   urlBandera: string;
+  torneoId: number;
   active: boolean;
 }
 
 const CONFEDERACIONES = ["CONMEBOL", "CONCACAF", "UEFA", "CAF", "AFC", "OFC"];
 
-export default function EquiposClient({ initial }: { initial: EquipoDto[] }) {
+export default function EquiposClient({ initial, torneos }: { initial: EquipoDto[]; torneos: TorneoOption[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<EquipoDto | null>(null);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ msg: string; sev: "success" | "error" } | null>(null);
 
+  const defaultTorneo = torneos[0]?.id ?? 0;
   const { register, handleSubmit, reset, control, watch, formState: { errors } } = useForm<FormValues>({
-    defaultValues: { nombre: "", confederacion: "CONMEBOL", anfitrion: false, urlBandera: "", active: true },
+    defaultValues: { nombre: "", confederacion: "CONMEBOL", anfitrion: false, urlBandera: "", torneoId: defaultTorneo, active: true },
   });
 
   // Valor actual del campo bandera para la vista previa en vivo dentro del diálogo.
@@ -53,13 +55,13 @@ export default function EquiposClient({ initial }: { initial: EquipoDto[] }) {
 
   const openNew = () => {
     setEditing(null);
-    reset({ nombre: "", confederacion: "CONMEBOL", anfitrion: false, urlBandera: "", active: true });
+    reset({ nombre: "", confederacion: "CONMEBOL", anfitrion: false, urlBandera: "", torneoId: defaultTorneo, active: true });
     setOpen(true);
   };
 
   const openEdit = (e: EquipoDto) => {
     setEditing(e);
-    reset({ nombre: e.nombre, confederacion: e.confederacion, anfitrion: e.anfitrion, urlBandera: e.urlBandera ?? "", active: e.active });
+    reset({ nombre: e.nombre, confederacion: e.confederacion, anfitrion: e.anfitrion, urlBandera: e.urlBandera ?? "", torneoId: e.torneoId, active: e.active });
     setOpen(true);
   };
 
@@ -71,7 +73,7 @@ export default function EquiposClient({ initial }: { initial: EquipoDto[] }) {
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify({ ...values, torneoId: Number(values.torneoId) }),
       });
       if (!res.ok) {
         const p = (await res.json().catch(() => ({}))) as { message?: string };
@@ -106,8 +108,12 @@ export default function EquiposClient({ initial }: { initial: EquipoDto[] }) {
     <Box>
       <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 2 }}>
         <Typography variant="h4" sx={{ fontWeight: 700 }}>Equipos</Typography>
-        <Button variant="contained" onClick={openNew}>Nuevo</Button>
+        <Button variant="contained" onClick={openNew} disabled={torneos.length === 0}>Nuevo</Button>
       </Stack>
+
+      {torneos.length === 0 && (
+        <Alert severity="info" sx={{ mb: 2 }}>Primero crea un torneo para poder registrar equipos.</Alert>
+      )}
 
       <TableContainer component={Paper}>
         <Table size="small">
@@ -118,6 +124,7 @@ export default function EquiposClient({ initial }: { initial: EquipoDto[] }) {
               <TableCell>Bandera</TableCell>
               <TableCell>Nombre</TableCell>
               <TableCell>Confederación</TableCell>
+              <TableCell>Torneo</TableCell>
               <TableCell>Anfitrión</TableCell>
               <TableCell>Activo</TableCell>
             </TableRow>
@@ -144,6 +151,7 @@ export default function EquiposClient({ initial }: { initial: EquipoDto[] }) {
                 </TableCell>
                 <TableCell>{e.nombre}</TableCell>
                 <TableCell>{e.confederacion}</TableCell>
+                <TableCell>{e.torneo}</TableCell>
                 <TableCell>{e.anfitrion ? "Sí" : "No"}</TableCell>
                 <TableCell>
                   <Chip size="small" label={e.active ? "Activo" : "Inactivo"} color={e.active ? "success" : "default"} />
@@ -151,7 +159,7 @@ export default function EquiposClient({ initial }: { initial: EquipoDto[] }) {
               </TableRow>
             ))}
             {initial.length === 0 && (
-              <TableRow><TableCell colSpan={7} align="center">No hay registros.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} align="center">No hay registros.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
@@ -168,6 +176,18 @@ export default function EquiposClient({ initial }: { initial: EquipoDto[] }) {
                 error={Boolean(errors.nombre)}
                 helperText={errors.nombre ? "Requerido (máx. 120)" : " "}
                 {...register("nombre", { required: true, maxLength: 120 })}
+              />
+              <Controller
+                name="torneoId"
+                control={control}
+                rules={{ required: true, min: 1 }}
+                render={({ field }) => (
+                  <TextField select label="Torneo" fullWidth {...field}>
+                    {torneos.map((t) => (
+                      <MenuItem key={t.id} value={t.id}>{t.descripcion}</MenuItem>
+                    ))}
+                  </TextField>
+                )}
               />
               <Controller
                 name="confederacion"

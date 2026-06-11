@@ -9,6 +9,7 @@ import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
 import TextField from "@mui/material/TextField";
+import MenuItem from "@mui/material/MenuItem";
 import Button from "@mui/material/Button";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
@@ -17,7 +18,7 @@ import { AdapterLuxon } from "@mui/x-date-pickers/AdapterLuxon";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { DateTime } from "luxon";
 import config_local from "@/app/global-configuration/config-local";
-import { EquipoCalendarioDto, PartidoCalendarioDto } from "../dtos";
+import { EquipoCalendarioDto, PartidoCalendarioDto, QuinielaOption } from "../dtos";
 import {
   Draft,
   SaveStatus,
@@ -71,15 +72,20 @@ function Equipo({ equipo }: { equipo: EquipoCalendarioDto }) {
 export default function CalendarioClient({
   initial,
   fechaDefault,
+  quinielas,
+  quinielaIdInicial,
 }: {
   initial: PartidoCalendarioDto[];
   fechaDefault: string;
+  quinielas: QuinielaOption[];
+  quinielaIdInicial: number;
 }) {
   // Default: el día de hoy (viene del server para evitar desfase de zona horaria).
   const hoy = fechaDefault ? DateTime.fromISO(fechaDefault) : DateTime.now();
   const [partidos, setPartidos] = useState<PartidoCalendarioDto[]>(initial);
   const [drafts, setDrafts] = useState<Record<number, Draft>>(() => buildDrafts(initial));
   const [saveStatus, setSaveStatus] = useState<Record<number, SaveStatus>>({});
+  const [quinielaId, setQuinielaId] = useState<number>(quinielaIdInicial);
   const [desde, setDesde] = useState<DateTime | null>(hoy);
   const [hasta, setHasta] = useState<DateTime | null>(hoy);
   const [loading, setLoading] = useState(false);
@@ -89,10 +95,12 @@ export default function CalendarioClient({
   // Refs siempre con el último estado, para que el guardado con debounce lea valores frescos.
   const partidosRef = useRef(partidos);
   const draftsRef = useRef(drafts);
+  const quinielaIdRef = useRef(quinielaId);
   const mountedRef = useRef(true);
   const timersRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
   useEffect(() => { partidosRef.current = partidos; }, [partidos]);
   useEffect(() => { draftsRef.current = drafts; }, [drafts]);
+  useEffect(() => { quinielaIdRef.current = quinielaId; }, [quinielaId]);
 
   // Borra (soft delete) la predicción. Usado por el botón y al vaciar ambos campos.
   const eliminarPrediccion = async (partidoId: number, prediccionId: number) => {
@@ -136,7 +144,7 @@ export default function CalendarioClient({
       const res = await fetch("/quinela/calendario/api/prediccion", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ partidoId, team1Resultado: action.team1, team2Resultado: action.team2 }),
+        body: JSON.stringify({ quinielaId: quinielaIdRef.current, partidoId, team1Resultado: action.team1, team2Resultado: action.team2 }),
       });
       if (!res.ok) {
         const e = (await res.json().catch(() => ({}))) as { message?: string };
@@ -192,17 +200,22 @@ export default function CalendarioClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const cargar = async (d: DateTime | null, h: DateTime | null) => {
+  const cargar = async (d: DateTime | null, h: DateTime | null, qid: number = quinielaIdRef.current) => {
     await flushPendientes(); // persistir pendientes antes de recargar
 
     if (d && h && d.toMillis() > h.toMillis()) {
       setToast({ msg: "La fecha 'Desde' no puede ser mayor que 'Hasta'.", sev: "error" });
       return;
     }
+    if (!qid) {
+      setPartidos([]);
+      return;
+    }
 
     setLoading(true);
     try {
       const params = new URLSearchParams();
+      params.set("quinielaId", String(qid));
       const dIso = d?.toISODate();
       const hIso = h?.toISODate();
       if (dIso) params.set("desde", dIso);
@@ -227,6 +240,12 @@ export default function CalendarioClient({
     setDesde(null);
     setHasta(null);
     void cargar(null, null);
+  };
+
+  const cambiarQuiniela = (qid: number) => {
+    setQuinielaId(qid);
+    quinielaIdRef.current = qid;
+    void cargar(desde, hasta, qid);
   };
 
   const setDraft = (id: number, campo: keyof Draft, valor: string) => {
@@ -261,12 +280,24 @@ export default function CalendarioClient({
         Fechas y enfrentamientos. Ingresa tu predicción en los partidos en previa.
       </Typography>
 
-      {/* Filtro por rango de fecha del partido. */}
+      {/* Selector de quiniela + filtro por rango de fecha del partido. */}
       <LocalizationProvider dateAdapter={AdapterLuxon} adapterLocale="es">
         <Stack
           direction={{ xs: "column", sm: "row" }}
-          sx={{ gap: 1.5, alignItems: { sm: "center" }, mb: 3 }}
+          sx={{ gap: 1.5, alignItems: { sm: "center" }, mb: 3, flexWrap: "wrap" }}
         >
+          <TextField
+            select
+            label="Quiniela"
+            size="small"
+            value={quinielas.length ? quinielaId : ""}
+            onChange={(e) => cambiarQuiniela(Number(e.target.value))}
+            sx={{ minWidth: 200 }}
+          >
+            {quinielas.map((q) => (
+              <MenuItem key={q.id} value={q.id}>{q.nombre}</MenuItem>
+            ))}
+          </TextField>
           <DatePicker
             label="Desde"
             value={desde}

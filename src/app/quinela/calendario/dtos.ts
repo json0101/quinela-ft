@@ -1,3 +1,8 @@
+export interface QuinielaOption {
+  id: number;
+  nombre: string;
+}
+
 export interface EquipoCalendarioDto {
   id: number;
   nombre: string;

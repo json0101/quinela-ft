@@ -25,86 +25,87 @@ import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
-import { GrupoDto, TorneoOption } from "../dtos";
+import { QuinielaDto, TorneoOption } from "../dtos";
 
 interface FormValues {
   nombre: string;
+  reglas: string;
   torneoId: number;
   active: boolean;
 }
 
-export default function GruposClient({ initial, torneos }: { initial: GrupoDto[]; torneos: TorneoOption[] }) {
+export default function QuinielasClient({ initial, torneos }: { initial: QuinielaDto[]; torneos: TorneoOption[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<GrupoDto | null>(null);
+  const [editing, setEditing] = useState<QuinielaDto | null>(null);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ msg: string; sev: "success" | "error" } | null>(null);
 
   const defaultTorneo = torneos[0]?.id ?? 0;
   const { register, handleSubmit, reset, control, formState: { errors } } = useForm<FormValues>({
-    defaultValues: { nombre: "", torneoId: defaultTorneo, active: true },
+    defaultValues: { nombre: "", reglas: "", torneoId: defaultTorneo, active: true },
   });
 
   const openNew = () => {
     setEditing(null);
-    reset({ nombre: "", torneoId: defaultTorneo, active: true });
+    reset({ nombre: "", reglas: "", torneoId: defaultTorneo, active: true });
     setOpen(true);
   };
 
-  const openEdit = (g: GrupoDto) => {
-    setEditing(g);
-    reset({ nombre: g.nombre, torneoId: g.torneoId, active: g.active });
+  const openEdit = (q: QuinielaDto) => {
+    setEditing(q);
+    reset({ nombre: q.nombre, reglas: q.reglas, torneoId: q.torneoId, active: q.active });
     setOpen(true);
   };
 
   const onSubmit = async (values: FormValues) => {
     setSaving(true);
     try {
-      const url = editing ? `/quinela/master/grupos/api/${editing.id}` : "/quinela/master/grupos/api";
+      const url = editing ? `/quinela/master/quinielas/api/${editing.id}` : "/quinela/master/quinielas/api";
       const method = editing ? "PUT" : "POST";
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...values, torneoId: Number(values.torneoId) }),
+        body: JSON.stringify(values),
       });
       if (!res.ok) {
         const p = (await res.json().catch(() => ({}))) as { message?: string };
         throw new Error(p.message ?? "Error al guardar");
       }
-      setToast({ msg: editing ? "Grupo actualizado" : "Grupo creado", sev: "success" });
+      setToast({ msg: editing ? "Quiniela actualizada" : "Quiniela creada", sev: "success" });
       setOpen(false);
       router.refresh();
-    } catch (e) {
-      setToast({ msg: e instanceof Error ? e.message : "Error", sev: "error" });
+    } catch (err) {
+      setToast({ msg: err instanceof Error ? err.message : "Error", sev: "error" });
     } finally {
       setSaving(false);
     }
   };
 
-  const onDelete = async (g: GrupoDto) => {
-    if (!confirm(`¿Eliminar el grupo "${g.nombre}"?`)) return;
+  const onDelete = async (q: QuinielaDto) => {
+    if (!confirm(`¿Eliminar la quiniela "${q.nombre}"?`)) return;
     try {
-      const res = await fetch(`/quinela/master/grupos/api/${g.id}`, { method: "DELETE" });
+      const res = await fetch(`/quinela/master/quinielas/api/${q.id}`, { method: "DELETE" });
       if (!res.ok) {
         const p = (await res.json().catch(() => ({}))) as { message?: string };
         throw new Error(p.message ?? "Error al eliminar");
       }
-      setToast({ msg: "Grupo eliminado", sev: "success" });
+      setToast({ msg: "Quiniela eliminada", sev: "success" });
       router.refresh();
-    } catch (e) {
-      setToast({ msg: e instanceof Error ? e.message : "Error", sev: "error" });
+    } catch (err) {
+      setToast({ msg: err instanceof Error ? err.message : "Error", sev: "error" });
     }
   };
 
   return (
     <Box>
       <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700 }}>Grupos</Typography>
-        <Button variant="contained" onClick={openNew} disabled={torneos.length === 0}>Nuevo</Button>
+        <Typography variant="h4" sx={{ fontWeight: 700 }}>Quinielas</Typography>
+        <Button variant="contained" onClick={openNew} disabled={torneos.length === 0}>Nueva</Button>
       </Stack>
 
       {torneos.length === 0 && (
-        <Alert severity="info" sx={{ mb: 2 }}>Primero crea un torneo para poder registrar grupos.</Alert>
+        <Alert severity="info" sx={{ mb: 2 }}>Primero crea un torneo para poder registrar quinielas.</Alert>
       )}
 
       <TableContainer component={Paper}>
@@ -115,21 +116,21 @@ export default function GruposClient({ initial, torneos }: { initial: GrupoDto[]
               <TableCell>Id</TableCell>
               <TableCell>Nombre</TableCell>
               <TableCell>Torneo</TableCell>
-              <TableCell>Activo</TableCell>
+              <TableCell>Activa</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {initial.map((g) => (
-              <TableRow key={g.id} hover>
+            {initial.map((q) => (
+              <TableRow key={q.id} hover>
                 <TableCell>
-                  <Button size="small" onClick={() => openEdit(g)}>Editar</Button>
-                  <Button size="small" color="error" onClick={() => onDelete(g)}>Eliminar</Button>
+                  <Button size="small" onClick={() => openEdit(q)}>Editar</Button>
+                  <Button size="small" color="error" onClick={() => onDelete(q)}>Eliminar</Button>
                 </TableCell>
-                <TableCell>{g.id}</TableCell>
-                <TableCell>{g.nombre}</TableCell>
-                <TableCell>{g.torneo}</TableCell>
+                <TableCell>{q.id}</TableCell>
+                <TableCell>{q.nombre}</TableCell>
+                <TableCell>{q.torneo}</TableCell>
                 <TableCell>
-                  <Chip size="small" label={g.active ? "Activo" : "Inactivo"} color={g.active ? "success" : "default"} />
+                  <Chip size="small" label={q.active ? "Activa" : "Inactiva"} color={q.active ? "success" : "default"} />
                 </TableCell>
               </TableRow>
             ))}
@@ -140,17 +141,17 @@ export default function GruposClient({ initial, torneos }: { initial: GrupoDto[]
         </Table>
       </TableContainer>
 
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="xs">
+      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
         <Box component="form" onSubmit={handleSubmit(onSubmit)}>
-          <DialogTitle>{editing ? "Editar grupo" : "Nuevo grupo"}</DialogTitle>
+          <DialogTitle>{editing ? "Editar quiniela" : "Nueva quiniela"}</DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ mt: 1 }}>
               <TextField
                 label="Nombre"
                 fullWidth
                 error={Boolean(errors.nombre)}
-                helperText={errors.nombre ? "Requerido (máx. 5)" : " "}
-                {...register("nombre", { required: true, maxLength: 5 })}
+                helperText={errors.nombre ? "Requerido (máx. 150)" : " "}
+                {...register("nombre", { required: true, maxLength: 150 })}
               />
               <Controller
                 name="torneoId"
@@ -164,13 +165,22 @@ export default function GruposClient({ initial, torneos }: { initial: GrupoDto[]
                   </TextField>
                 )}
               />
+              <TextField
+                label="Reglas"
+                fullWidth
+                multiline
+                minRows={5}
+                error={Boolean(errors.reglas)}
+                helperText={errors.reglas ? "Requerido" : " "}
+                {...register("reglas", { required: true })}
+              />
               <Controller
                 name="active"
                 control={control}
                 render={({ field }) => (
                   <FormControlLabel
                     control={<Switch checked={field.value} onChange={(_, c) => field.onChange(c)} />}
-                    label="Activo"
+                    label="Activa"
                   />
                 )}
               />
