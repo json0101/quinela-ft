@@ -1,5 +1,6 @@
 import { DateTime } from "luxon";
 import { backendFetch } from "@/app/global-configuration/backend";
+import { TEGUS_TZ } from "@/app/global-configuration/fechas";
 import CalendarioClient from "./ui/CalendarioClient";
 import { PartidoCalendarioDto, QuinielaOption } from "./dtos";
 
@@ -11,8 +12,9 @@ export default async function CalendarioPage() {
   const quinielas = resQ.ok ? ((await resQ.json()) as QuinielaOption[]) : [];
   const quinielaId = quinielas[0]?.id ?? 0;
 
-  // Por defecto el calendario abre filtrado al día de hoy, para la primera quiniela.
-  const hoy = DateTime.now().toISODate() ?? "";
+  // Por defecto el calendario abre filtrado al día de hoy (en hora de Tegucigalpa),
+  // para la primera quiniela.
+  const hoy = DateTime.now().setZone(TEGUS_TZ).toISODate() ?? "";
   let partidos: PartidoCalendarioDto[] = [];
   if (quinielaId) {
     const res = await backendFetch(`/partidos?quinielaId=${quinielaId}&desde=${hoy}&hasta=${hoy}`);

@@ -18,6 +18,7 @@ import { AdapterLuxon } from "@mui/x-date-pickers/AdapterLuxon";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { DateTime } from "luxon";
 import config_local from "@/app/global-configuration/config-local";
+import { fmtTegus } from "@/app/global-configuration/fechas";
 import { EquipoCalendarioDto, PartidoCalendarioDto, QuinielaOption } from "../dtos";
 import {
   Draft,
@@ -332,8 +333,8 @@ export default function CalendarioClient({
       >
         {partidos.map((p) => {
           const chip = estadoChip(p.estado);
-          // Se muestra en UTC para que el día de la tarjeta coincida con el del filtro.
-          const fecha = DateTime.fromISO(p.fechaPartido, { zone: "utc" }).toFormat(config_local.format_date);
+          // La fecha viene en UTC del backend; se muestra en hora de Tegucigalpa.
+          const fecha = fmtTegus(p.fechaPartido, config_local.format_date);
           const enPrevia = p.estado === "P";
           const draft = drafts[p.id] ?? { local: "", visitante: "" };
           const ep = enPrevia ? estadoPrediccion(draft, p.prediccion ?? null, saveStatus[p.id]) : null;

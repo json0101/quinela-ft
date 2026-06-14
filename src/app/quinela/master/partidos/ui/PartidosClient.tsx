@@ -34,6 +34,7 @@ import {
   EquipoOption,
   TipoPartidoOption,
 } from "../dtos";
+import { fmtTegus, utcIsoToTegusInput, tegusInputToUtcIso } from "@/app/global-configuration/fechas";
 
 interface FormValues {
   fechaPartido: string;
@@ -61,8 +62,6 @@ const ESTADOS: Record<string, { label: string; color: "default" | "warning" | "s
   T: { label: "Terminado", color: "success" },
 };
 
-// ISO ("2026-06-11T00:00:00Z") -> valor de <input type="datetime-local"> ("2026-06-11T00:00").
-const toInput = (iso?: string) => (iso ? iso.slice(0, 16) : "");
 
 export default function PartidosClient({
   initial,
@@ -145,7 +144,7 @@ export default function PartidosClient({
   const openEdit = (p: PartidoAdminDto) => {
     setEditing(p);
     reset({
-      fechaPartido: toInput(p.fechaPartido),
+      fechaPartido: utcIsoToTegusInput(p.fechaPartido),
       torneoId: p.torneoId,
       grupoId: p.grupoId,
       equipoLocalId: p.equipoLocalId,
@@ -178,7 +177,7 @@ export default function PartidosClient({
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          fechaPartido: values.fechaPartido,
+          fechaPartido: tegusInputToUtcIso(values.fechaPartido),
           torneoId: Number(values.torneoId),
           grupoId: Number(values.grupoId),
           equipoLocalId: Number(values.equipoLocalId),
@@ -220,10 +219,8 @@ export default function PartidosClient({
     }
   };
 
-  const fmtFecha = (iso: string) => {
-    const v = toInput(iso);
-    return v ? v.replace("T", " ") : "";
-  };
+  // La fecha viene en UTC del backend; se muestra en hora de Tegucigalpa.
+  const fmtFecha = (iso: string) => fmtTegus(iso);
   const fmtResultado = (p: PartidoAdminDto) =>
     p.resultadoLocal != null && p.resultadoVisitante != null
       ? `${p.resultadoLocal} - ${p.resultadoVisitante}`
@@ -331,12 +328,12 @@ export default function PartidosClient({
           <DialogContent dividers>
             <Stack spacing={2} sx={{ mt: 1 }}>
               <TextField
-                label="Fecha y hora"
+                label="Fecha y hora (Tegucigalpa)"
                 type="datetime-local"
                 fullWidth
                 slotProps={{ inputLabel: { shrink: true } }}
                 error={Boolean(errors.fechaPartido)}
-                helperText={errors.fechaPartido ? "Requerida" : " "}
+                helperText={errors.fechaPartido ? "Requerida" : "Hora local de Tegucigalpa; se guarda en UTC."}
                 {...register("fechaPartido", { required: true })}
               />
               <Controller

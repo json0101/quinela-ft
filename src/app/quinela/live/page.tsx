@@ -1,5 +1,6 @@
 import { DateTime } from "luxon";
 import { backendFetch } from "@/app/global-configuration/backend";
+import { TEGUS_TZ } from "@/app/global-configuration/fechas";
 import LiveClient from "./ui/LiveClient";
 import { QuinielaOption, PartidoLive, PrediccionLive } from "./dtos";
 
@@ -19,7 +20,7 @@ export default async function LivePage({
 
   // Solo los partidos EN JUEGO (estado 'E'): los que se están jugando ahora.
   // Se excluyen los que aún no inician ('P') y los terminados ('T').
-  const hoy = DateTime.now().toISODate() ?? "";
+  const hoy = DateTime.now().setZone(TEGUS_TZ).toISODate() ?? "";
   let partidos: PartidoLive[] = [];
   if (quinielaId) {
     const resP = await backendFetch(`/partidos?quinielaId=${quinielaId}`);

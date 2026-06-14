@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { DateTime } from "luxon";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
@@ -27,13 +26,7 @@ import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import { RankingDto, QuinielaOption, PrediccionUsuarioDto } from "../dtos";
 import { medallaPorPosicion, MEDALLA_ESTILO } from "../logic";
-
-// El servidor guarda en UTC; aquí se muestra en hora de Tegucigalpa.
-const TEGUS_TZ = "America/Tegucigalpa";
-function fmtTegus(iso: string): string {
-  const dt = DateTime.fromISO(iso, { zone: "utc" }).setZone(TEGUS_TZ);
-  return dt.isValid ? dt.toFormat("dd/MM/yyyy HH:mm") : "—";
-}
+import { fmtTegus } from "@/app/global-configuration/fechas";
 
 function Bandera({ url, nombre }: { url?: string; nombre: string }) {
   if (!url) return null;
