@@ -146,23 +146,42 @@ export default function LiveClient({
       {partido && (
         <>
           <Paper sx={{ p: 2, mb: 2 }}>
-            <Stack direction="row" spacing={2} sx={{ alignItems: "center", justifyContent: "center" }}>
-              <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-                <Bandera url={partido.local.urlBandera} nombre={partido.local.nombre} size={30} />
-                <Typography sx={{ fontWeight: 600 }}>{partido.local.nombre}</Typography>
+            <Stack spacing={1.5} sx={{ alignItems: "center" }}>
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={{ xs: 1, sm: 2 }}
+                sx={{ alignItems: "center", justifyContent: "center", width: "100%" }}
+              >
+                {/* Ambos equipos con el mismo ancho (flex:1) para que el marcador
+                    quede siempre centrado, sin importar el largo de los nombres. */}
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{ flex: 1, minWidth: 0, alignItems: "center", justifyContent: { xs: "center", sm: "flex-end" } }}
+                >
+                  <Bandera url={partido.local.urlBandera} nombre={partido.local.nombre} size={30} />
+                  <Typography sx={{ fontWeight: 600, textAlign: "center" }}>{partido.local.nombre}</Typography>
+                </Stack>
+                <Typography variant="h5" sx={{ fontWeight: 800, minWidth: 64, textAlign: "center", flexShrink: 0 }}>
+                  {marcador(partido)}
+                </Typography>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{ flex: 1, minWidth: 0, alignItems: "center", justifyContent: { xs: "center", sm: "flex-start" } }}
+                >
+                  <Bandera url={partido.visitante.urlBandera} nombre={partido.visitante.nombre} size={30} />
+                  <Typography sx={{ fontWeight: 600, textAlign: "center" }}>{partido.visitante.nombre}</Typography>
+                </Stack>
               </Stack>
-              <Typography variant="h5" sx={{ fontWeight: 800, minWidth: 80, textAlign: "center" }}>
-                {marcador(partido)}
-              </Typography>
-              <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-                <Typography sx={{ fontWeight: 600 }}>{partido.visitante.nombre}</Typography>
-                <Bandera url={partido.visitante.urlBandera} nombre={partido.visitante.nombre} size={30} />
-              </Stack>
-              <Chip
-                size="small"
-                label={estadoLabel(partido.estado)}
-                color={partido.estado === "E" ? "warning" : partido.estado === "T" ? "success" : "default"}
-              />
+              {/* Estado del partido: fila a todo el ancho, chip centrado. */}
+              <Box sx={{ display: "flex", justifyContent: "center", width: "100%" }}>
+                <Chip
+                  size="small"
+                  label={estadoLabel(partido.estado)}
+                  color={partido.estado === "E" ? "warning" : partido.estado === "T" ? "success" : "default"}
+                />
+              </Box>
             </Stack>
           </Paper>
 

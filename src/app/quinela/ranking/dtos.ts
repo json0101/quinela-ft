@@ -1,5 +1,8 @@
 export interface RankingDto {
   id: number;
+  // Posición en la tabla (1 = primero). La calcula el backend con el criterio de
+  // desempate; los empatados comparten posición y la siguiente se "salta".
+  posicion: number;
   usuario: string;
   pts: number;
   resultadoAtinado: number;

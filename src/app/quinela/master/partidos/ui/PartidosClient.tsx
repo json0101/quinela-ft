@@ -25,6 +25,8 @@ import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useTheme } from "@mui/material/styles";
 import {
   PartidoAdminDto,
   TorneoOption,
@@ -75,6 +77,9 @@ export default function PartidosClient({
   tipos: TipoPartidoOption[];
 }) {
   const router = useRouter();
+  const theme = useTheme();
+  // En móvil el formulario va a pantalla completa para capturar cómodamente.
+  const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<PartidoAdminDto | null>(null);
   const [saving, setSaving] = useState(false);
@@ -237,31 +242,45 @@ export default function PartidosClient({
           <TableHead>
             <TableRow>
               <TableCell>Acciones</TableCell>
-              <TableCell>Id</TableCell>
-              <TableCell>Fecha</TableCell>
-              <TableCell>Grupo</TableCell>
+              <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>Id</TableCell>
+              <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>Fecha</TableCell>
+              <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>Grupo</TableCell>
               <TableCell>Local</TableCell>
               <TableCell>Visitante</TableCell>
-              <TableCell>Tipo</TableCell>
-              <TableCell>Estado</TableCell>
+              <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>Tipo</TableCell>
+              <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>Estado</TableCell>
               <TableCell>Resultado</TableCell>
-              <TableCell>Activo</TableCell>
+              <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>Activo</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {initial.map((p) => (
               <TableRow key={p.id} hover>
                 <TableCell>
-                  <Button size="small" onClick={() => openEdit(p)}>Editar</Button>
-                  <Button size="small" color="error" onClick={() => onDelete(p)}>Eliminar</Button>
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={0.5}>
+                    <Button size="small" onClick={() => openEdit(p)}>Editar</Button>
+                    <Button size="small" color="error" onClick={() => onDelete(p)}>Eliminar</Button>
+                  </Stack>
                 </TableCell>
-                <TableCell>{p.id}</TableCell>
-                <TableCell>{fmtFecha(p.fechaPartido)}</TableCell>
-                <TableCell>{p.grupo}</TableCell>
-                <TableCell>{p.equipoLocal}</TableCell>
-                <TableCell>{p.equipoVisitante}</TableCell>
-                <TableCell>{p.tipoPartido}</TableCell>
+                <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>{p.id}</TableCell>
+                <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>{fmtFecha(p.fechaPartido)}</TableCell>
+                <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>{p.grupo}</TableCell>
                 <TableCell>
+                  {p.equipoLocal}
+                  {/* En móvil (columnas ocultas) se pliega aquí el detalle del partido. */}
+                  <Typography
+                    variant="caption"
+                    component="div"
+                    sx={{ display: { xs: "block", md: "none" }, color: "text.secondary" }}
+                  >
+                    {fmtFecha(p.fechaPartido)} · {p.grupo} · {p.tipoPartido}
+                    <br />
+                    {(ESTADOS[p.estado]?.label ?? p.estado)} · {p.active ? "Activo" : "Inactivo"}
+                  </Typography>
+                </TableCell>
+                <TableCell>{p.equipoVisitante}</TableCell>
+                <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>{p.tipoPartido}</TableCell>
+                <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>
                   <Chip
                     size="small"
                     label={ESTADOS[p.estado]?.label ?? p.estado}
@@ -269,7 +288,7 @@ export default function PartidosClient({
                   />
                 </TableCell>
                 <TableCell>{fmtResultado(p)}</TableCell>
-                <TableCell>
+                <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>
                   <Chip size="small" label={p.active ? "Activo" : "Inactivo"} color={p.active ? "success" : "default"} />
                 </TableCell>
               </TableRow>
@@ -281,10 +300,20 @@ export default function PartidosClient({
         </Table>
       </TableContainer>
 
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
-        <Box component="form" onSubmit={handleSubmit(onSubmit)}>
+      {/* En celular ocupa toda la pantalla; en computadora es un modal normal.
+          El form va en el Paper del Dialog para que DialogContent maneje el
+          scroll interno y nunca se desborde la pantalla. */}
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        fullWidth
+        maxWidth="sm"
+        fullScreen={fullScreen}
+        scroll="paper"
+        slotProps={{ paper: { component: "form", onSubmit: handleSubmit(onSubmit) } }}
+      >
           <DialogTitle>{editing ? "Editar partido" : "Nuevo partido"}</DialogTitle>
-          <DialogContent>
+          <DialogContent dividers>
             <Stack spacing={2} sx={{ mt: 1 }}>
               <TextField
                 label="Fecha y hora"
@@ -325,7 +354,7 @@ export default function PartidosClient({
                   </TextField>
                 )}
               />
-              <Stack direction="row" spacing={2}>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                 <Controller
                   name="equipoLocalId"
                   control={control}
@@ -376,7 +405,7 @@ export default function PartidosClient({
                 )}
               />
               {exigeGoles && (
-                <Stack direction="row" spacing={2}>
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                   <TextField
                     label="Goles local"
                     type="number"
@@ -412,7 +441,6 @@ export default function PartidosClient({
             <Button onClick={() => setOpen(false)}>Cancelar</Button>
             <Button type="submit" variant="contained" disabled={saving}>Guardar</Button>
           </DialogActions>
-        </Box>
       </Dialog>
 
       <Snackbar open={Boolean(toast)} autoHideDuration={4000} onClose={() => setToast(null)}>

@@ -5,6 +5,7 @@ import Stack from "@mui/material/Stack";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
+import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
@@ -45,7 +46,8 @@ export default async function GruposVistaPage() {
                 </Typography>
               </Stack>
 
-              <Table size="small">
+              <TableContainer sx={{ overflowX: "auto" }}>
+              <Table size="small" sx={{ minWidth: 320 }}>
                 <TableHead>
                   <TableRow>
                     <TableCell sx={{ width: 28 }}>#</TableCell>
@@ -83,6 +85,7 @@ export default async function GruposVistaPage() {
                   ))}
                 </TableBody>
               </Table>
+              </TableContainer>
             </CardContent>
           </Card>
         ))}

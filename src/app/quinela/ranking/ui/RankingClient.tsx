@@ -21,7 +21,12 @@ import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import CircularProgress from "@mui/material/CircularProgress";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useTheme } from "@mui/material/styles";
+import IconButton from "@mui/material/IconButton";
+import CloseIcon from "@mui/icons-material/Close";
 import { RankingDto, QuinielaOption, PrediccionUsuarioDto } from "../dtos";
+import { medallaPorPosicion, MEDALLA_ESTILO } from "../logic";
 
 // El servidor guarda en UTC; aquí se muestra en hora de Tegucigalpa.
 const TEGUS_TZ = "America/Tegucigalpa";
@@ -59,6 +64,10 @@ export default function RankingClient({
   quinielas: QuinielaOption[];
   quinielaIdInicial: number;
 }) {
+  const theme = useTheme();
+  // En móvil el modal va a pantalla completa para aprovechar el alto y poder
+  // hacer scroll cómodamente cuando hay muchos partidos.
+  const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const [ranking, setRanking] = useState<RankingDto[]>(initial);
   const [quinielaId, setQuinielaId] = useState<number>(quinielaIdInicial);
   const [loading, setLoading] = useState(false);
@@ -140,26 +149,47 @@ export default function RankingClient({
               <TableCell sx={{ width: 56 }}>#</TableCell>
               <TableCell>Usuario</TableCell>
               <TableCell align="right">Puntos</TableCell>
-              <TableCell align="right">Exactos</TableCell>
-              <TableCell align="right">Atinados</TableCell>
+              <TableCell align="right" sx={{ display: { xs: "none", md: "table-cell" } }}>Exactos</TableCell>
+              <TableCell align="right" sx={{ display: { xs: "none", md: "table-cell" } }}>Atinados</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {ranking.map((r, i) => (
+            {ranking.map((r) => {
+              const medalla = medallaPorPosicion(r.posicion);
+              return (
               <TableRow key={r.id} hover sx={{ cursor: "pointer" }} onClick={() => abrirUsuario(r.usuario)}>
                 <TableCell>
-                  {i < 3 ? (
-                    <Chip label={i + 1} size="small" color={i === 0 ? "primary" : i === 1 ? "secondary" : "default"} />
+                  {medalla ? (
+                    <Chip
+                      label={r.posicion}
+                      size="small"
+                      sx={{
+                        bgcolor: MEDALLA_ESTILO[medalla].bg,
+                        color: MEDALLA_ESTILO[medalla].fg,
+                        fontWeight: 700,
+                      }}
+                    />
                   ) : (
-                    i + 1
+                    r.posicion
                   )}
                 </TableCell>
-                <TableCell sx={{ color: "primary.main", fontWeight: 600 }}>{r.usuario}</TableCell>
+                <TableCell sx={{ color: "primary.main", fontWeight: 600 }}>
+                  {r.usuario}
+                  {/* En móvil (sin columnas de exactos/atinados) se pliegan aquí. */}
+                  <Typography
+                    component="span"
+                    variant="caption"
+                    sx={{ display: { xs: "block", md: "none" }, color: "text.secondary", fontWeight: 400 }}
+                  >
+                    Exactos {r.resultadoExacto} · Atin. {r.resultadoAtinado}
+                  </Typography>
+                </TableCell>
                 <TableCell align="right" sx={{ fontWeight: 700 }}>{r.pts}</TableCell>
-                <TableCell align="right">{r.resultadoExacto}</TableCell>
-                <TableCell align="right">{r.resultadoAtinado}</TableCell>
+                <TableCell align="right" sx={{ display: { xs: "none", md: "table-cell" } }}>{r.resultadoExacto}</TableCell>
+                <TableCell align="right" sx={{ display: { xs: "none", md: "table-cell" } }}>{r.resultadoAtinado}</TableCell>
               </TableRow>
-            ))}
+              );
+            })}
             {ranking.length === 0 && (
               <TableRow>
                 <TableCell colSpan={5} align="center">Aún no hay ranking para mostrar.</TableCell>
@@ -169,14 +199,21 @@ export default function RankingClient({
         </Table>
       </TableContainer>
 
-      <Dialog open={openUser} onClose={() => setOpenUser(false)} fullWidth maxWidth="md">
-        <DialogTitle>
+      <Dialog open={openUser} onClose={() => setOpenUser(false)} fullWidth maxWidth="md" fullScreen={fullScreen} scroll="paper">
+        <DialogTitle sx={{ pr: 6 }}>
           Predicciones de {usuarioSel}
           <Typography variant="body2" color="text.secondary">
             Solo partidos terminados · {preds.length} {preds.length === 1 ? "partido" : "partidos"} · {totalPuntos} pts
           </Typography>
+          <IconButton
+            aria-label="Cerrar"
+            onClick={() => setOpenUser(false)}
+            sx={{ position: "absolute", top: 8, right: 8, color: "text.secondary" }}
+          >
+            <CloseIcon />
+          </IconButton>
         </DialogTitle>
-        <DialogContent dividers>
+        <DialogContent dividers sx={{ overflowY: "auto" }}>
           {loadingPreds ? (
             <Stack sx={{ alignItems: "center", py: 4 }}><CircularProgress /></Stack>
           ) : (
@@ -185,11 +222,11 @@ export default function RankingClient({
                 <TableHead>
                   <TableRow>
                     <TableCell>Partido</TableCell>
-                    <TableCell>Tipo</TableCell>
+                    <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>Tipo</TableCell>
                     <TableCell align="center">Predicción</TableCell>
                     <TableCell align="center">Resultado</TableCell>
                     <TableCell align="center">Puntos</TableCell>
-                    <TableCell>Guardada (Tegucigalpa)</TableCell>
+                    <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>Guardada (Tegucigalpa)</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -203,8 +240,15 @@ export default function RankingClient({
                           <Bandera url={p.visitante.urlBandera} nombre={p.visitante.nombre} />
                           <span>{p.visitante.nombre}</span>
                         </Stack>
+                        {/* En móvil (sin columnas Tipo/Guardada) se pliegan aquí. */}
+                        <Typography
+                          variant="caption"
+                          sx={{ display: { xs: "block", md: "none" }, color: "text.secondary" }}
+                        >
+                          {p.tipoPartido} · {fmtTegus(p.guardadaEn)}
+                        </Typography>
                       </TableCell>
-                      <TableCell>{p.tipoPartido}</TableCell>
+                      <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>{p.tipoPartido}</TableCell>
                       <TableCell align="center" sx={{ fontWeight: 600 }}>
                         {(p.team1Resultado ?? "—") + " - " + (p.team2Resultado ?? "—")}
                       </TableCell>
@@ -217,7 +261,7 @@ export default function RankingClient({
                           {p.categoria ? <Chip size="small" label={CAT[p.categoria].label} color={CAT[p.categoria].color} /> : null}
                         </Stack>
                       </TableCell>
-                      <TableCell>{fmtTegus(p.guardadaEn)}</TableCell>
+                      <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>{fmtTegus(p.guardadaEn)}</TableCell>
                     </TableRow>
                   ))}
                   {preds.length === 0 && (
