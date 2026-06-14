@@ -16,6 +16,7 @@ export interface PartidoAdminDto {
   ptsLocal?: number | null;
   ptsVisitante?: number | null;
   estado: string; // 'P' previa | 'E' en curso | 'T' terminado
+  partidoIdApi?: string | null; // _id del game en worldcup26.ir
   active: boolean;
   createdAt?: string;
   createdBy?: string;

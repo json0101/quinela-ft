@@ -45,6 +45,7 @@ interface FormValues {
   estado: string;
   resultadoLocal: number | "";
   resultadoVisitante: number | "";
+  partidoIdApi: string;
   active: boolean;
 }
 
@@ -100,6 +101,7 @@ export default function PartidosClient({
         estado: "P",
         resultadoLocal: "",
         resultadoVisitante: "",
+        partidoIdApi: "",
         active: true,
       },
     });
@@ -134,6 +136,7 @@ export default function PartidosClient({
       estado: "P",
       resultadoLocal: "",
       resultadoVisitante: "",
+      partidoIdApi: "",
       active: true,
     });
     setOpen(true);
@@ -151,6 +154,7 @@ export default function PartidosClient({
       estado: p.estado,
       resultadoLocal: p.resultadoLocal ?? "",
       resultadoVisitante: p.resultadoVisitante ?? "",
+      partidoIdApi: p.partidoIdApi ?? "",
       active: p.active,
     });
     setOpen(true);
@@ -183,6 +187,7 @@ export default function PartidosClient({
           estado: values.estado,
           resultadoLocal: jugado ? Number(values.resultadoLocal) : null,
           resultadoVisitante: jugado ? Number(values.resultadoVisitante) : null,
+          partidoIdApi: values.partidoIdApi.trim() || null,
           active: values.active,
         }),
       });
@@ -251,6 +256,7 @@ export default function PartidosClient({
               <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>Estado</TableCell>
               <TableCell>Resultado</TableCell>
               <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>Activo</TableCell>
+              <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>ID API</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -276,6 +282,12 @@ export default function PartidosClient({
                     {fmtFecha(p.fechaPartido)} · {p.grupo} · {p.tipoPartido}
                     <br />
                     {(ESTADOS[p.estado]?.label ?? p.estado)} · {p.active ? "Activo" : "Inactivo"}
+                    {p.partidoIdApi ? (
+                      <>
+                        <br />
+                        API: {p.partidoIdApi}
+                      </>
+                    ) : null}
                   </Typography>
                 </TableCell>
                 <TableCell>{p.equipoVisitante}</TableCell>
@@ -291,10 +303,13 @@ export default function PartidosClient({
                 <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>
                   <Chip size="small" label={p.active ? "Activo" : "Inactivo"} color={p.active ? "success" : "default"} />
                 </TableCell>
+                <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>
+                  <Typography variant="caption" sx={{ color: "text.secondary" }}>{p.partidoIdApi ?? "—"}</Typography>
+                </TableCell>
               </TableRow>
             ))}
             {initial.length === 0 && (
-              <TableRow><TableCell colSpan={10} align="center">No hay registros.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={11} align="center">No hay registros.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
@@ -422,6 +437,13 @@ export default function PartidosClient({
                   />
                 </Stack>
               )}
+              <TextField
+                label="ID API (partido)"
+                placeholder="679c9c8a5749c4077500e005"
+                fullWidth
+                helperText="_id del game en worldcup26.ir (para sincronizar resultados)"
+                {...register("partidoIdApi", { maxLength: 40 })}
+              />
               <Controller
                 name="active"
                 control={control}

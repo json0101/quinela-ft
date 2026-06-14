@@ -32,6 +32,8 @@ interface FormValues {
   confederacion: string;
   anfitrion: boolean;
   urlBandera: string;
+  equipoIdApi: string;
+  equipoIdApiLargo: string;
   torneoId: number;
   active: boolean;
 }
@@ -47,7 +49,7 @@ export default function EquiposClient({ initial, torneos }: { initial: EquipoDto
 
   const defaultTorneo = torneos[0]?.id ?? 0;
   const { register, handleSubmit, reset, control, watch, formState: { errors } } = useForm<FormValues>({
-    defaultValues: { nombre: "", confederacion: "CONMEBOL", anfitrion: false, urlBandera: "", torneoId: defaultTorneo, active: true },
+    defaultValues: { nombre: "", confederacion: "CONMEBOL", anfitrion: false, urlBandera: "", equipoIdApi: "", equipoIdApiLargo: "", torneoId: defaultTorneo, active: true },
   });
 
   // Valor actual del campo bandera para la vista previa en vivo dentro del diálogo.
@@ -55,13 +57,13 @@ export default function EquiposClient({ initial, torneos }: { initial: EquipoDto
 
   const openNew = () => {
     setEditing(null);
-    reset({ nombre: "", confederacion: "CONMEBOL", anfitrion: false, urlBandera: "", torneoId: defaultTorneo, active: true });
+    reset({ nombre: "", confederacion: "CONMEBOL", anfitrion: false, urlBandera: "", equipoIdApi: "", equipoIdApiLargo: "", torneoId: defaultTorneo, active: true });
     setOpen(true);
   };
 
   const openEdit = (e: EquipoDto) => {
     setEditing(e);
-    reset({ nombre: e.nombre, confederacion: e.confederacion, anfitrion: e.anfitrion, urlBandera: e.urlBandera ?? "", torneoId: e.torneoId, active: e.active });
+    reset({ nombre: e.nombre, confederacion: e.confederacion, anfitrion: e.anfitrion, urlBandera: e.urlBandera ?? "", equipoIdApi: e.equipoIdApi ?? "", equipoIdApiLargo: e.equipoIdApiLargo ?? "", torneoId: e.torneoId, active: e.active });
     setOpen(true);
   };
 
@@ -124,6 +126,7 @@ export default function EquiposClient({ initial, torneos }: { initial: EquipoDto
               <TableCell>Bandera</TableCell>
               <TableCell>Nombre</TableCell>
               <TableCell>Confederación</TableCell>
+              <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>ID API</TableCell>
               <TableCell>Torneo</TableCell>
               <TableCell>Anfitrión</TableCell>
               <TableCell>Activo</TableCell>
@@ -151,6 +154,14 @@ export default function EquiposClient({ initial, torneos }: { initial: EquipoDto
                 </TableCell>
                 <TableCell>{e.nombre}</TableCell>
                 <TableCell>{e.confederacion}</TableCell>
+                <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>
+                  {e.equipoIdApi ?? "—"}
+                  {e.equipoIdApiLargo ? (
+                    <Typography variant="caption" component="div" sx={{ color: "text.secondary" }}>
+                      {e.equipoIdApiLargo}
+                    </Typography>
+                  ) : null}
+                </TableCell>
                 <TableCell>{e.torneo}</TableCell>
                 <TableCell>{e.anfitrion ? "Sí" : "No"}</TableCell>
                 <TableCell>
@@ -159,7 +170,7 @@ export default function EquiposClient({ initial, torneos }: { initial: EquipoDto
               </TableRow>
             ))}
             {initial.length === 0 && (
-              <TableRow><TableCell colSpan={8} align="center">No hay registros.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} align="center">No hay registros.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
@@ -220,6 +231,20 @@ export default function EquiposClient({ initial, torneos }: { initial: EquipoDto
                   />
                 ) : null}
               </Stack>
+              <TextField
+                label="ID API (numérico)"
+                placeholder="12"
+                fullWidth
+                helperText="Id del team en worldcup26.ir (para sincronizar resultados)"
+                {...register("equipoIdApi", { maxLength: 20 })}
+              />
+              <TextField
+                label="ID API (largo)"
+                placeholder="679c9c6b5749c4077500ea12"
+                fullWidth
+                helperText="_id del team en worldcup26.ir"
+                {...register("equipoIdApiLargo", { maxLength: 40 })}
+              />
               <Controller
                 name="anfitrion"
                 control={control}

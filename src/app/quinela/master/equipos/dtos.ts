@@ -4,6 +4,9 @@ export interface EquipoDto {
   confederacion: string;
   anfitrion: boolean;
   urlBandera?: string;
+  // Ids del API externo (worldcup26.ir) para sincronizar resultados.
+  equipoIdApi?: string;
+  equipoIdApiLargo?: string;
   torneoId: number;
   torneo: string;
   active: boolean;
