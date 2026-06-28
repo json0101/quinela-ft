@@ -20,6 +20,10 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import TextField from "@mui/material/TextField";
+import InputAdornment from "@mui/material/InputAdornment";
+import IconButton from "@mui/material/IconButton";
+import SearchIcon from "@mui/icons-material/Search";
+import ClearIcon from "@mui/icons-material/Clear";
 import MenuItem from "@mui/material/MenuItem";
 import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
@@ -113,6 +117,12 @@ export default function PartidosClient({
   const [editing, setEditing] = useState<PartidoAdminDto | null>(null);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ msg: string; sev: "success" | "error" } | null>(null);
+  // Filtro por equipo (solo en cliente, sobre los partidos ya cargados).
+  const [filtro, setFiltro] = useState("");
+  const partidosFiltrados = filtro.trim()
+    ? initial.filter((p) =>
+        `${p.equipoLocal ?? ""} ${p.equipoVisitante ?? ""}`.toLowerCase().includes(filtro.trim().toLowerCase()))
+    : initial;
 
   const defaultTorneo = torneos[0]?.id ?? 0;
   const faltanCatalogos = torneos.length === 0 || grupos.length === 0 || equipos.length < 2 || tipos.length === 0;
@@ -253,7 +263,7 @@ export default function PartidosClient({
         body: JSON.stringify({
           fechaPartido: tegusInputToUtcIso(values.fechaPartido),
           torneoId: Number(values.torneoId),
-          grupoId: porDef ? null : Number(values.grupoId),
+          grupoId: porDef ? null : Number(values.grupoId) || null,
           faseId: Number(values.faseId),
           equipoLocalId: porDef ? null : Number(values.equipoLocalId),
           equipoVisitanteId: porDef ? null : Number(values.equipoVisitanteId),
@@ -328,6 +338,31 @@ export default function PartidosClient({
         </Alert>
       )}
 
+      <TextField
+        size="small"
+        fullWidth
+        placeholder="Buscar por equipo (local o visitante)…"
+        value={filtro}
+        onChange={(e) => setFiltro(e.target.value)}
+        sx={{ mb: 2 }}
+        slotProps={{
+          input: {
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon fontSize="small" />
+              </InputAdornment>
+            ),
+            endAdornment: filtro ? (
+              <InputAdornment position="end">
+                <IconButton size="small" aria-label="limpiar" onClick={() => setFiltro("")}>
+                  <ClearIcon fontSize="small" />
+                </IconButton>
+              </InputAdornment>
+            ) : null,
+          },
+        }}
+      />
+
       <TableContainer component={Paper}>
         <Table size="small">
           <TableHead>
@@ -346,7 +381,7 @@ export default function PartidosClient({
             </TableRow>
           </TableHead>
           <TableBody>
-            {initial.map((p) => (
+            {partidosFiltrados.map((p) => (
               <TableRow key={p.id} hover>
                 <TableCell>
                   <Stack direction={{ xs: "column", sm: "row" }} spacing={0.5}>
@@ -394,8 +429,10 @@ export default function PartidosClient({
                 </TableCell>
               </TableRow>
             ))}
-            {initial.length === 0 && (
-              <TableRow><TableCell colSpan={11} align="center">No hay registros.</TableCell></TableRow>
+            {partidosFiltrados.length === 0 && (
+              <TableRow><TableCell colSpan={11} align="center">
+                {filtro.trim() ? "Sin partidos para esa búsqueda." : "No hay registros."}
+              </TableCell></TableRow>
             )}
           </TableBody>
         </Table>
@@ -447,9 +484,9 @@ export default function PartidosClient({
                 <Controller
                   name="grupoId"
                   control={control}
-                  rules={{ required: true, min: 1 }}
                   render={({ field }) => (
-                    <TextField select label="Grupo" fullWidth {...field}>
+                    <TextField select label="Grupo (opcional)" fullWidth {...field}>
+                      <MenuItem value={0}>— Sin grupo —</MenuItem>
                       {gruposDe.map((g) => (
                         <MenuItem key={g.id} value={g.id}>{g.nombre}</MenuItem>
                       ))}
