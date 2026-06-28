@@ -271,7 +271,7 @@ export default function PartidosClient({
           estado: porDef ? "P" : values.estado,
           resultadoLocal: jugado ? Number(values.resultadoLocal) : null,
           resultadoVisitante: jugado ? Number(values.resultadoVisitante) : null,
-          partidoIdApi: porDef ? null : values.partidoIdApi.trim() || null,
+          partidoIdApi: values.partidoIdApi.trim() || null,
           active: values.active,
           porDefinirse: porDef,
           // ¿Aplica penales? solo en eliminatoria; en grupos el backend lo guarda false.
@@ -690,15 +690,13 @@ export default function PartidosClient({
                   )}
                 </Stack>
               )}
-              {!porDefinirse && (
-                <TextField
-                  label="ID API (partido)"
-                  placeholder="679c9c8a5749c4077500e005"
-                  fullWidth
-                  helperText="_id del game en worldcup26.ir (para sincronizar resultados)"
-                  {...register("partidoIdApi", { maxLength: 40 })}
-                />
-              )}
+              <TextField
+                label="ID API (partido)"
+                placeholder="679c9c8a5749c4077500e005"
+                fullWidth
+                helperText="_id del game en worldcup26.ir (para sincronizar resultados)"
+                {...register("partidoIdApi", { maxLength: 40 })}
+              />
               <Controller
                 name="active"
                 control={control}
