@@ -33,6 +33,7 @@ import {
   GrupoOption,
   EquipoOption,
   TipoPartidoOption,
+  FaseOption,
 } from "../dtos";
 import { fmtTegus, utcIsoToTegusInput, tegusInputToUtcIso } from "@/app/global-configuration/fechas";
 
@@ -40,6 +41,7 @@ interface FormValues {
   fechaPartido: string;
   torneoId: number;
   grupoId: number;
+  faseId: number;
   equipoLocalId: number;
   equipoVisitanteId: number;
   tipoPartidoId: number;
@@ -48,7 +50,28 @@ interface FormValues {
   resultadoVisitante: number | "";
   partidoIdApi: string;
   active: boolean;
+  // Definición de eliminatoria (solo se usan cuando la fase no es "Grupos").
+  partidoSeDefiniraEnPenales: "" | "true" | "false";
+  penalesAnotadosLocal: number | "";
+  penalesAnotadosVisitante: number | "";
+  equipoGanadorId: number; // 0 = sin definir
+  partidoGanadorLocalId: number; // 0 = sin definir
+  partidoGanadorVisitanteId: number; // 0 = sin definir
 }
+
+// La fase "Grupos" usa la lógica clásica; cualquier otra fase es eliminatoria
+// (habilita penales / equipo ganador / árbol). Espeja al backend (FasesConocidas).
+const esFaseGrupos = (f?: FaseOption) => (f?.descripcion ?? "").trim().toLowerCase() === "grupos";
+const faseDefaultDe = (fases: FaseOption[], torneoId: number) => {
+  const de = fases.filter((f) => f.torneoId === torneoId);
+  return (de.find(esFaseGrupos) ?? de[0])?.id ?? 0;
+};
+
+const DEFINIRA_PENALES_OPCIONES = [
+  { value: "", label: "Sin definir" },
+  { value: "true", label: "Sí" },
+  { value: "false", label: "No" },
+];
 
 const ESTADO_OPCIONES = [
   { value: "P", label: "Previa" },
@@ -69,12 +92,14 @@ export default function PartidosClient({
   grupos,
   equipos,
   tipos,
+  fases,
 }: {
   initial: PartidoAdminDto[];
   torneos: TorneoOption[];
   grupos: GrupoOption[];
   equipos: EquipoOption[];
   tipos: TipoPartidoOption[];
+  fases: FaseOption[];
 }) {
   const router = useRouter();
   const theme = useTheme();
@@ -94,6 +119,7 @@ export default function PartidosClient({
         fechaPartido: "",
         torneoId: defaultTorneo,
         grupoId: 0,
+        faseId: faseDefaultDe(fases, defaultTorneo),
         equipoLocalId: 0,
         equipoVisitanteId: 0,
         tipoPartidoId: tipos[0]?.id ?? 0,
@@ -102,14 +128,26 @@ export default function PartidosClient({
         resultadoVisitante: "",
         partidoIdApi: "",
         active: true,
+        partidoSeDefiniraEnPenales: "",
+        penalesAnotadosLocal: "",
+        penalesAnotadosVisitante: "",
+        equipoGanadorId: 0,
+        partidoGanadorLocalId: 0,
+        partidoGanadorVisitanteId: 0,
       },
     });
 
   const torneoSel = Number(watch("torneoId"));
   const estadoSel = String(watch("estado"));
+  const faseSel = Number(watch("faseId"));
   const exigeGoles = estadoSel === "E" || estadoSel === "T";
   const gruposDe = grupos.filter((g) => g.torneoId === torneoSel);
   const equiposDe = equipos.filter((e) => e.torneoId === torneoSel);
+  const fasesDe = fases.filter((f) => f.torneoId === torneoSel);
+  // Eliminatoria = la fase seleccionada no es "Grupos": habilita los campos extra.
+  const esEliminatoria = !esFaseGrupos(fases.find((f) => f.id === faseSel));
+  // Partidos del mismo torneo para armar el árbol (excluye el que se edita).
+  const partidosDe = initial.filter((p) => p.torneoId === torneoSel && (!editing || p.id !== editing.id));
 
   // Al cambiar de torneo, reubica las selecciones dependientes a opciones válidas.
   const onTorneoChange = (id: number) => {
@@ -117,6 +155,7 @@ export default function PartidosClient({
     const gs = grupos.filter((g) => g.torneoId === id);
     const es = equipos.filter((e) => e.torneoId === id);
     setValue("grupoId", gs[0]?.id ?? 0);
+    setValue("faseId", faseDefaultDe(fases, id));
     setValue("equipoLocalId", es[0]?.id ?? 0);
     setValue("equipoVisitanteId", es[1]?.id ?? 0);
   };
@@ -129,6 +168,7 @@ export default function PartidosClient({
       fechaPartido: "",
       torneoId: defaultTorneo,
       grupoId: gs[0]?.id ?? 0,
+      faseId: faseDefaultDe(fases, defaultTorneo),
       equipoLocalId: es[0]?.id ?? 0,
       equipoVisitanteId: es[1]?.id ?? 0,
       tipoPartidoId: tipos[0]?.id ?? 0,
@@ -137,6 +177,12 @@ export default function PartidosClient({
       resultadoVisitante: "",
       partidoIdApi: "",
       active: true,
+      partidoSeDefiniraEnPenales: "",
+      penalesAnotadosLocal: "",
+      penalesAnotadosVisitante: "",
+      equipoGanadorId: 0,
+      partidoGanadorLocalId: 0,
+      partidoGanadorVisitanteId: 0,
     });
     setOpen(true);
   };
@@ -147,6 +193,7 @@ export default function PartidosClient({
       fechaPartido: utcIsoToTegusInput(p.fechaPartido),
       torneoId: p.torneoId,
       grupoId: p.grupoId,
+      faseId: p.faseId,
       equipoLocalId: p.equipoLocalId,
       equipoVisitanteId: p.equipoVisitanteId,
       tipoPartidoId: p.tipoPartidoId,
@@ -155,6 +202,13 @@ export default function PartidosClient({
       resultadoVisitante: p.resultadoVisitante ?? "",
       partidoIdApi: p.partidoIdApi ?? "",
       active: p.active,
+      partidoSeDefiniraEnPenales:
+        p.partidoSeDefiniraEnPenales == null ? "" : p.partidoSeDefiniraEnPenales ? "true" : "false",
+      penalesAnotadosLocal: p.penalesAnotadosLocal ?? "",
+      penalesAnotadosVisitante: p.penalesAnotadosVisitante ?? "",
+      equipoGanadorId: p.equipoGanadorId ?? 0,
+      partidoGanadorLocalId: p.partidoGanadorLocalId ?? 0,
+      partidoGanadorVisitanteId: p.partidoGanadorVisitanteId ?? 0,
     });
     setOpen(true);
   };
@@ -180,6 +234,7 @@ export default function PartidosClient({
           fechaPartido: tegusInputToUtcIso(values.fechaPartido),
           torneoId: Number(values.torneoId),
           grupoId: Number(values.grupoId),
+          faseId: Number(values.faseId),
           equipoLocalId: Number(values.equipoLocalId),
           equipoVisitanteId: Number(values.equipoVisitanteId),
           tipoPartidoId: Number(values.tipoPartidoId),
@@ -188,6 +243,16 @@ export default function PartidosClient({
           resultadoVisitante: jugado ? Number(values.resultadoVisitante) : null,
           partidoIdApi: values.partidoIdApi.trim() || null,
           active: values.active,
+          // Definición de eliminatoria. El backend las guarda nulas si la fase es Grupos.
+          partidoSeDefiniraEnPenales:
+            values.partidoSeDefiniraEnPenales === "" ? null : values.partidoSeDefiniraEnPenales === "true",
+          penalesAnotadosLocal:
+            values.penalesAnotadosLocal === "" ? null : Number(values.penalesAnotadosLocal),
+          penalesAnotadosVisitante:
+            values.penalesAnotadosVisitante === "" ? null : Number(values.penalesAnotadosVisitante),
+          equipoGanadorId: Number(values.equipoGanadorId) || null,
+          partidoGanadorLocalId: Number(values.partidoGanadorLocalId) || null,
+          partidoGanadorVisitanteId: Number(values.partidoGanadorVisitanteId) || null,
         }),
       });
       if (!res.ok) {
@@ -276,7 +341,7 @@ export default function PartidosClient({
                     component="div"
                     sx={{ display: { xs: "block", md: "none" }, color: "text.secondary" }}
                   >
-                    {fmtFecha(p.fechaPartido)} · {p.grupo} · {p.tipoPartido}
+                    {fmtFecha(p.fechaPartido)} · {p.grupo} · {p.fase} · {p.tipoPartido}
                     <br />
                     {(ESTADOS[p.estado]?.label ?? p.estado)} · {p.active ? "Activo" : "Inactivo"}
                     {p.partidoIdApi ? (
@@ -366,6 +431,18 @@ export default function PartidosClient({
                   </TextField>
                 )}
               />
+              <Controller
+                name="faseId"
+                control={control}
+                rules={{ required: true, min: 1 }}
+                render={({ field }) => (
+                  <TextField select label="Fase" fullWidth {...field}>
+                    {fasesDe.map((f) => (
+                      <MenuItem key={f.id} value={f.id}>{f.descripcion}</MenuItem>
+                    ))}
+                  </TextField>
+                )}
+              />
               <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                 <Controller
                   name="equipoLocalId"
@@ -431,6 +508,79 @@ export default function PartidosClient({
                     fullWidth
                     slotProps={{ htmlInput: { min: 0 } }}
                     {...register("resultadoVisitante")}
+                  />
+                </Stack>
+              )}
+              {esEliminatoria && (
+                <Stack spacing={2} sx={{ p: 2, borderRadius: 1, border: 1, borderColor: "divider" }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                    Definición de eliminatoria
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                    Todos los campos son opcionales; déjalos sin definir si aún no aplica.
+                  </Typography>
+                  <Controller
+                    name="equipoGanadorId"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField select label="Equipo ganador" fullWidth {...field}>
+                        <MenuItem value={0}>— Sin definir —</MenuItem>
+                        {equiposDe.map((e) => (
+                          <MenuItem key={e.id} value={e.id}>{e.nombre}</MenuItem>
+                        ))}
+                      </TextField>
+                    )}
+                  />
+                  <Controller
+                    name="partidoSeDefiniraEnPenales"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField select label="¿Se definirá en penales?" fullWidth {...field}>
+                        {DEFINIRA_PENALES_OPCIONES.map((o) => (
+                          <MenuItem key={o.label} value={o.value}>{o.label}</MenuItem>
+                        ))}
+                      </TextField>
+                    )}
+                  />
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                    <TextField
+                      label="Penales anotados local"
+                      type="number"
+                      fullWidth
+                      slotProps={{ htmlInput: { min: 0 } }}
+                      {...register("penalesAnotadosLocal")}
+                    />
+                    <TextField
+                      label="Penales anotados visitante"
+                      type="number"
+                      fullWidth
+                      slotProps={{ htmlInput: { min: 0 } }}
+                      {...register("penalesAnotadosVisitante")}
+                    />
+                  </Stack>
+                  <Controller
+                    name="partidoGanadorLocalId"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField select label="Partido que define al local (árbol)" fullWidth {...field}>
+                        <MenuItem value={0}>— Sin definir —</MenuItem>
+                        {partidosDe.map((p) => (
+                          <MenuItem key={p.id} value={p.id}>{`#${p.id} ${p.equipoLocal} vs ${p.equipoVisitante}`}</MenuItem>
+                        ))}
+                      </TextField>
+                    )}
+                  />
+                  <Controller
+                    name="partidoGanadorVisitanteId"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField select label="Partido que define al visitante (árbol)" fullWidth {...field}>
+                        <MenuItem value={0}>— Sin definir —</MenuItem>
+                        {partidosDe.map((p) => (
+                          <MenuItem key={p.id} value={p.id}>{`#${p.id} ${p.equipoLocal} vs ${p.equipoVisitante}`}</MenuItem>
+                        ))}
+                      </TextField>
+                    )}
                   />
                 </Stack>
               )}

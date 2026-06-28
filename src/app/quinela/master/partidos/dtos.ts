@@ -5,10 +5,14 @@ export interface PartidoAdminDto {
   torneo: string;
   grupoId: number;
   grupo: string;
+  faseId: number;
+  fase: string;
   equipoLocalId: number;
   equipoLocal: string;
   equipoVisitanteId: number;
   equipoVisitante: string;
+  equipoGanadorId?: number | null;
+  equipoGanador?: string | null;
   tipoPartidoId: number;
   tipoPartido: string;
   resultadoLocal?: number | null;
@@ -17,6 +21,13 @@ export interface PartidoAdminDto {
   ptsVisitante?: number | null;
   estado: string; // 'P' previa | 'E' en curso | 'T' terminado
   partidoIdApi?: string | null; // _id del game en worldcup26.ir
+  // Definición de eliminatoria (null/false en grupos).
+  aplicaDefinicionPenales: boolean;
+  partidoSeDefiniraEnPenales?: boolean | null;
+  penalesAnotadosLocal?: number | null;
+  penalesAnotadosVisitante?: number | null;
+  partidoGanadorLocalId?: number | null;
+  partidoGanadorVisitanteId?: number | null;
   active: boolean;
   createdAt?: string;
   createdBy?: string;
@@ -44,4 +55,10 @@ export interface EquipoOption {
 export interface TipoPartidoOption {
   id: number;
   descripcion: string;
+}
+
+export interface FaseOption {
+  id: number;
+  descripcion: string;
+  torneoId: number;
 }
