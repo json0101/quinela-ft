@@ -50,6 +50,10 @@ interface FormValues {
   resultadoVisitante: number | "";
   partidoIdApi: string;
   active: boolean;
+  // "Por definirse": el partido de eliminatoria se arma solo del árbol (sin grupo/equipos).
+  porDefinirse: boolean;
+  // ¿Aplica definición por penales? (solo eliminatoria).
+  aplicaDefinicionPenales: boolean;
   // Definición de eliminatoria (solo se usan cuando la fase no es "Grupos").
   partidoSeDefiniraEnPenales: "" | "true" | "false";
   penalesAnotadosLocal: number | "";
@@ -128,6 +132,8 @@ export default function PartidosClient({
         resultadoVisitante: "",
         partidoIdApi: "",
         active: true,
+        porDefinirse: false,
+        aplicaDefinicionPenales: true,
         partidoSeDefiniraEnPenales: "",
         penalesAnotadosLocal: "",
         penalesAnotadosVisitante: "",
@@ -146,6 +152,13 @@ export default function PartidosClient({
   const fasesDe = fases.filter((f) => f.torneoId === torneoSel);
   // Eliminatoria = la fase seleccionada no es "Grupos": habilita los campos extra.
   const esEliminatoria = !esFaseGrupos(fases.find((f) => f.id === faseSel));
+  // "Por definirse": solo aplica en eliminatoria; el partido se arma del árbol.
+  const porDefinirse = esEliminatoria && Boolean(watch("porDefinirse"));
+  // Equipo ya resuelto: el ganador del partido del árbol seleccionado (si ese partido terminó).
+  const ganLocalSel = Number(watch("partidoGanadorLocalId"));
+  const ganVisitSel = Number(watch("partidoGanadorVisitanteId"));
+  const localResuelto = initial.find((p) => p.id === ganLocalSel)?.equipoGanador || "";
+  const visitanteResuelto = initial.find((p) => p.id === ganVisitSel)?.equipoGanador || "";
   // Partidos del mismo torneo para armar el árbol (excluye el que se edita).
   const partidosDe = initial.filter((p) => p.torneoId === torneoSel && (!editing || p.id !== editing.id));
 
@@ -158,6 +171,7 @@ export default function PartidosClient({
     setValue("faseId", faseDefaultDe(fases, id));
     setValue("equipoLocalId", es[0]?.id ?? 0);
     setValue("equipoVisitanteId", es[1]?.id ?? 0);
+    setValue("porDefinirse", false);
   };
 
   const openNew = () => {
@@ -177,6 +191,8 @@ export default function PartidosClient({
       resultadoVisitante: "",
       partidoIdApi: "",
       active: true,
+      porDefinirse: false,
+      aplicaDefinicionPenales: true,
       partidoSeDefiniraEnPenales: "",
       penalesAnotadosLocal: "",
       penalesAnotadosVisitante: "",
@@ -202,6 +218,8 @@ export default function PartidosClient({
       resultadoVisitante: p.resultadoVisitante ?? "",
       partidoIdApi: p.partidoIdApi ?? "",
       active: p.active,
+      porDefinirse: p.porDefinirse,
+      aplicaDefinicionPenales: p.aplicaDefinicionPenales,
       partidoSeDefiniraEnPenales:
         p.partidoSeDefiniraEnPenales == null ? "" : p.partidoSeDefiniraEnPenales ? "true" : "false",
       penalesAnotadosLocal: p.penalesAnotadosLocal ?? "",
@@ -214,11 +232,13 @@ export default function PartidosClient({
   };
 
   const onSubmit = async (values: FormValues) => {
-    if (Number(values.equipoLocalId) === Number(values.equipoVisitanteId)) {
+    // "Por definirse": el partido se arma del árbol; no aplican equipos/grupo/estado.
+    const porDef = esEliminatoria && values.porDefinirse;
+    if (!porDef && Number(values.equipoLocalId) === Number(values.equipoVisitanteId)) {
       setToast({ msg: "El equipo local y el visitante no pueden ser el mismo.", sev: "error" });
       return;
     }
-    const jugado = values.estado === "E" || values.estado === "T";
+    const jugado = !porDef && (values.estado === "E" || values.estado === "T");
     if (jugado && (values.resultadoLocal === "" || values.resultadoVisitante === "")) {
       setToast({ msg: "Captura los goles de ambos equipos para un partido en curso o terminado.", sev: "error" });
       return;
@@ -233,24 +253,28 @@ export default function PartidosClient({
         body: JSON.stringify({
           fechaPartido: tegusInputToUtcIso(values.fechaPartido),
           torneoId: Number(values.torneoId),
-          grupoId: Number(values.grupoId),
+          grupoId: porDef ? null : Number(values.grupoId),
           faseId: Number(values.faseId),
-          equipoLocalId: Number(values.equipoLocalId),
-          equipoVisitanteId: Number(values.equipoVisitanteId),
+          equipoLocalId: porDef ? null : Number(values.equipoLocalId),
+          equipoVisitanteId: porDef ? null : Number(values.equipoVisitanteId),
           tipoPartidoId: Number(values.tipoPartidoId),
-          estado: values.estado,
+          estado: porDef ? "P" : values.estado,
           resultadoLocal: jugado ? Number(values.resultadoLocal) : null,
           resultadoVisitante: jugado ? Number(values.resultadoVisitante) : null,
-          partidoIdApi: values.partidoIdApi.trim() || null,
+          partidoIdApi: porDef ? null : values.partidoIdApi.trim() || null,
           active: values.active,
-          // Definición de eliminatoria. El backend las guarda nulas si la fase es Grupos.
+          porDefinirse: porDef,
+          // ¿Aplica penales? solo en eliminatoria; en grupos el backend lo guarda false.
+          aplicaDefinicionPenales: esEliminatoria ? values.aplicaDefinicionPenales : false,
+          // Penales/equipo ganador: solo en eliminatoria con equipos (no en "por definirse").
           partidoSeDefiniraEnPenales:
-            values.partidoSeDefiniraEnPenales === "" ? null : values.partidoSeDefiniraEnPenales === "true",
+            porDef || values.partidoSeDefiniraEnPenales === "" ? null : values.partidoSeDefiniraEnPenales === "true",
           penalesAnotadosLocal:
-            values.penalesAnotadosLocal === "" ? null : Number(values.penalesAnotadosLocal),
+            porDef || values.penalesAnotadosLocal === "" ? null : Number(values.penalesAnotadosLocal),
           penalesAnotadosVisitante:
-            values.penalesAnotadosVisitante === "" ? null : Number(values.penalesAnotadosVisitante),
-          equipoGanadorId: Number(values.equipoGanadorId) || null,
+            porDef || values.penalesAnotadosVisitante === "" ? null : Number(values.penalesAnotadosVisitante),
+          equipoGanadorId: porDef ? null : Number(values.equipoGanadorId) || null,
+          // El árbol (de qué partidos depende) se manda en ambos modos de eliminatoria.
           partidoGanadorLocalId: Number(values.partidoGanadorLocalId) || null,
           partidoGanadorVisitanteId: Number(values.partidoGanadorVisitanteId) || null,
         }),
@@ -419,18 +443,20 @@ export default function PartidosClient({
                   </TextField>
                 )}
               />
-              <Controller
-                name="grupoId"
-                control={control}
-                rules={{ required: true, min: 1 }}
-                render={({ field }) => (
-                  <TextField select label="Grupo" fullWidth {...field}>
-                    {gruposDe.map((g) => (
-                      <MenuItem key={g.id} value={g.id}>{g.nombre}</MenuItem>
-                    ))}
-                  </TextField>
-                )}
-              />
+              {!porDefinirse && (
+                <Controller
+                  name="grupoId"
+                  control={control}
+                  rules={{ required: true, min: 1 }}
+                  render={({ field }) => (
+                    <TextField select label="Grupo" fullWidth {...field}>
+                      {gruposDe.map((g) => (
+                        <MenuItem key={g.id} value={g.id}>{g.nombre}</MenuItem>
+                      ))}
+                    </TextField>
+                  )}
+                />
+              )}
               <Controller
                 name="faseId"
                 control={control}
@@ -443,32 +469,46 @@ export default function PartidosClient({
                   </TextField>
                 )}
               />
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+              {esEliminatoria && (
                 <Controller
-                  name="equipoLocalId"
+                  name="porDefinirse"
                   control={control}
-                  rules={{ required: true, min: 1 }}
                   render={({ field }) => (
-                    <TextField select label="Equipo local" fullWidth {...field}>
-                      {equiposDe.map((e) => (
-                        <MenuItem key={e.id} value={e.id}>{e.nombre}</MenuItem>
-                      ))}
-                    </TextField>
+                    <FormControlLabel
+                      control={<Switch checked={field.value} onChange={(_, c) => field.onChange(c)} />}
+                      label="Por definir (se arma del árbol: sin grupo ni equipos)"
+                    />
                   )}
                 />
-                <Controller
-                  name="equipoVisitanteId"
-                  control={control}
-                  rules={{ required: true, min: 1 }}
-                  render={({ field }) => (
-                    <TextField select label="Equipo visitante" fullWidth {...field}>
-                      {equiposDe.map((e) => (
-                        <MenuItem key={e.id} value={e.id}>{e.nombre}</MenuItem>
-                      ))}
-                    </TextField>
-                  )}
-                />
-              </Stack>
+              )}
+              {!porDefinirse && (
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                  <Controller
+                    name="equipoLocalId"
+                    control={control}
+                    rules={{ required: true, min: 1 }}
+                    render={({ field }) => (
+                      <TextField select label="Equipo local" fullWidth {...field}>
+                        {equiposDe.map((e) => (
+                          <MenuItem key={e.id} value={e.id}>{e.nombre}</MenuItem>
+                        ))}
+                      </TextField>
+                    )}
+                  />
+                  <Controller
+                    name="equipoVisitanteId"
+                    control={control}
+                    rules={{ required: true, min: 1 }}
+                    render={({ field }) => (
+                      <TextField select label="Equipo visitante" fullWidth {...field}>
+                        {equiposDe.map((e) => (
+                          <MenuItem key={e.id} value={e.id}>{e.nombre}</MenuItem>
+                        ))}
+                      </TextField>
+                    )}
+                  />
+                </Stack>
+              )}
               <Controller
                 name="tipoPartidoId"
                 control={control}
@@ -481,19 +521,21 @@ export default function PartidosClient({
                   </TextField>
                 )}
               />
-              <Controller
-                name="estado"
-                control={control}
-                rules={{ required: true }}
-                render={({ field }) => (
-                  <TextField select label="Estado" fullWidth {...field}>
-                    {ESTADO_OPCIONES.map((e) => (
-                      <MenuItem key={e.value} value={e.value}>{e.label}</MenuItem>
-                    ))}
-                  </TextField>
-                )}
-              />
-              {exigeGoles && (
+              {!porDefinirse && (
+                <Controller
+                  name="estado"
+                  control={control}
+                  rules={{ required: true }}
+                  render={({ field }) => (
+                    <TextField select label="Estado" fullWidth {...field}>
+                      {ESTADO_OPCIONES.map((e) => (
+                        <MenuItem key={e.value} value={e.value}>{e.label}</MenuItem>
+                      ))}
+                    </TextField>
+                  )}
+                />
+              )}
+              {!porDefinirse && exigeGoles && (
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                   <TextField
                     label="Goles local"
@@ -514,50 +556,26 @@ export default function PartidosClient({
               {esEliminatoria && (
                 <Stack spacing={2} sx={{ p: 2, borderRadius: 1, border: 1, borderColor: "divider" }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                    Definición de eliminatoria
+                    {porDefinirse ? "Árbol de eliminatoria (por definir)" : "Definición de eliminatoria"}
                   </Typography>
                   <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                    Todos los campos son opcionales; déjalos sin definir si aún no aplica.
+                    {porDefinirse
+                      ? "El partido se arma con los ganadores de estos dos partidos; los equipos se resuelven solos."
+                      : "Todos los campos son opcionales; déjalos sin definir si aún no aplica."}
                   </Typography>
+
                   <Controller
-                    name="equipoGanadorId"
+                    name="aplicaDefinicionPenales"
                     control={control}
                     render={({ field }) => (
-                      <TextField select label="Equipo ganador" fullWidth {...field}>
-                        <MenuItem value={0}>— Sin definir —</MenuItem>
-                        {equiposDe.map((e) => (
-                          <MenuItem key={e.id} value={e.id}>{e.nombre}</MenuItem>
-                        ))}
-                      </TextField>
+                      <FormControlLabel
+                        control={<Switch checked={field.value} onChange={(_, c) => field.onChange(c)} />}
+                        label="¿Aplica definición por penales?"
+                      />
                     )}
                   />
-                  <Controller
-                    name="partidoSeDefiniraEnPenales"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField select label="¿Se definirá en penales?" fullWidth {...field}>
-                        {DEFINIRA_PENALES_OPCIONES.map((o) => (
-                          <MenuItem key={o.label} value={o.value}>{o.label}</MenuItem>
-                        ))}
-                      </TextField>
-                    )}
-                  />
-                  <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                    <TextField
-                      label="Penales anotados local"
-                      type="number"
-                      fullWidth
-                      slotProps={{ htmlInput: { min: 0 } }}
-                      {...register("penalesAnotadosLocal")}
-                    />
-                    <TextField
-                      label="Penales anotados visitante"
-                      type="number"
-                      fullWidth
-                      slotProps={{ htmlInput: { min: 0 } }}
-                      {...register("penalesAnotadosVisitante")}
-                    />
-                  </Stack>
+
+                  {/* El árbol (de qué partidos depende) aplica en ambos modos. */}
                   <Controller
                     name="partidoGanadorLocalId"
                     control={control}
@@ -565,11 +583,14 @@ export default function PartidosClient({
                       <TextField select label="Partido que define al local (árbol)" fullWidth {...field}>
                         <MenuItem value={0}>— Sin definir —</MenuItem>
                         {partidosDe.map((p) => (
-                          <MenuItem key={p.id} value={p.id}>{`#${p.id} ${p.equipoLocal} vs ${p.equipoVisitante}`}</MenuItem>
+                          <MenuItem key={p.id} value={p.id}>{`#${p.id} ${p.equipoLocal || "?"} vs ${p.equipoVisitante || "?"}`}</MenuItem>
                         ))}
                       </TextField>
                     )}
                   />
+                  <Typography variant="caption" sx={{ mt: -1, color: localResuelto ? "success.main" : "text.secondary" }}>
+                    Equipo local: <b>{localResuelto || "— por definir —"}</b>
+                  </Typography>
                   <Controller
                     name="partidoGanadorVisitanteId"
                     control={control}
@@ -577,20 +598,70 @@ export default function PartidosClient({
                       <TextField select label="Partido que define al visitante (árbol)" fullWidth {...field}>
                         <MenuItem value={0}>— Sin definir —</MenuItem>
                         {partidosDe.map((p) => (
-                          <MenuItem key={p.id} value={p.id}>{`#${p.id} ${p.equipoLocal} vs ${p.equipoVisitante}`}</MenuItem>
+                          <MenuItem key={p.id} value={p.id}>{`#${p.id} ${p.equipoLocal || "?"} vs ${p.equipoVisitante || "?"}`}</MenuItem>
                         ))}
                       </TextField>
                     )}
                   />
+                  <Typography variant="caption" sx={{ mt: -1, color: visitanteResuelto ? "success.main" : "text.secondary" }}>
+                    Equipo visitante: <b>{visitanteResuelto || "— por definir —"}</b>
+                  </Typography>
+
+                  {/* Penales y equipo ganador: solo cuando el partido ya tiene equipos. */}
+                  {!porDefinirse && (
+                    <>
+                      <Controller
+                        name="equipoGanadorId"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField select label="Equipo ganador" fullWidth {...field}>
+                            <MenuItem value={0}>— Sin definir —</MenuItem>
+                            {equiposDe.map((e) => (
+                              <MenuItem key={e.id} value={e.id}>{e.nombre}</MenuItem>
+                            ))}
+                          </TextField>
+                        )}
+                      />
+                      <Controller
+                        name="partidoSeDefiniraEnPenales"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField select label="¿Se definirá en penales?" fullWidth {...field}>
+                            {DEFINIRA_PENALES_OPCIONES.map((o) => (
+                              <MenuItem key={o.label} value={o.value}>{o.label}</MenuItem>
+                            ))}
+                          </TextField>
+                        )}
+                      />
+                      <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                        <TextField
+                          label="Penales anotados local"
+                          type="number"
+                          fullWidth
+                          slotProps={{ htmlInput: { min: 0 } }}
+                          {...register("penalesAnotadosLocal")}
+                        />
+                        <TextField
+                          label="Penales anotados visitante"
+                          type="number"
+                          fullWidth
+                          slotProps={{ htmlInput: { min: 0 } }}
+                          {...register("penalesAnotadosVisitante")}
+                        />
+                      </Stack>
+                    </>
+                  )}
                 </Stack>
               )}
-              <TextField
-                label="ID API (partido)"
-                placeholder="679c9c8a5749c4077500e005"
-                fullWidth
-                helperText="_id del game en worldcup26.ir (para sincronizar resultados)"
-                {...register("partidoIdApi", { maxLength: 40 })}
-              />
+              {!porDefinirse && (
+                <TextField
+                  label="ID API (partido)"
+                  placeholder="679c9c8a5749c4077500e005"
+                  fullWidth
+                  helperText="_id del game en worldcup26.ir (para sincronizar resultados)"
+                  {...register("partidoIdApi", { maxLength: 40 })}
+                />
+              )}
               <Controller
                 name="active"
                 control={control}
@@ -602,7 +673,9 @@ export default function PartidosClient({
                 )}
               />
               <Alert severity="info">
-                Al guardar con estado &quot;En curso&quot; o &quot;Terminado&quot; se recalculan automáticamente las posiciones y el ranking.
+                {porDefinirse
+                  ? "El partido se guardará sin equipos; se llenarán solos cuando se conozcan los ganadores del árbol."
+                  : "Al guardar con estado “En curso” o “Terminado” se recalculan automáticamente las posiciones y el ranking."}
               </Alert>
             </Stack>
           </DialogContent>

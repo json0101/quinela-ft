@@ -22,6 +22,7 @@ export interface PartidoAdminDto {
   estado: string; // 'P' previa | 'E' en curso | 'T' terminado
   partidoIdApi?: string | null; // _id del game en worldcup26.ir
   // Definición de eliminatoria (null/false en grupos).
+  porDefinirse: boolean;
   aplicaDefinicionPenales: boolean;
   partidoSeDefiniraEnPenales?: boolean | null;
   penalesAnotadosLocal?: number | null;

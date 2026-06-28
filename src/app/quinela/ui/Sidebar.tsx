@@ -28,6 +28,7 @@ import StadiumIcon from "@mui/icons-material/Stadium";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
 import CategoryIcon from "@mui/icons-material/Category";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
+import SchemaIcon from "@mui/icons-material/Schema";
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import CircleOutlinedIcon from "@mui/icons-material/CircleOutlined";
 import InstallAppButton from "./InstallAppButton";
@@ -78,6 +79,7 @@ const ICONO_POR_RUTA: Record<string, SvgIconComponent> = {
   "/quinela/ranking": EmojiEventsIcon,
   "/quinela/live": LiveTvIcon,
   "/quinela/grupos": TableChartIcon,
+  "/quinela/eliminatoria": SchemaIcon,
   "/quinela/master/grupos": GroupsIcon,
   "/quinela/master/equipos": FlagIcon,
   "/quinela/master/quinielas": AssignmentIcon,
